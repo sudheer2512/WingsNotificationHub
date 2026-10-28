@@ -1,0 +1,41 @@
+# syntax=docker/dockerfile:1.7
+#
+# Wings Notification Hub — background worker (outbox relay, queue consumers, dispatch, scheduler, reconciliation,
+# provider health, retention). Run one or more replicas next to the API with Workers__RunInApi=false on the API.
+# Build context: repository root (BuildKit uses Dockerfile.worker.dockerignore next to this file).
+#
+#   docker build -f deploy/docker/Dockerfile.worker -t wings/notification-hub-worker:latest .
+#
+# Note: the worker needs the ASP.NET Core shared framework (Wings.NotificationHub.Infrastructure has a
+# FrameworkReference to Microsoft.AspNetCore.App), so the runtime stage uses the aspnet image, not runtime.
+
+ARG DOTNET_VERSION=10.0
+
+FROM mcr.microsoft.com/dotnet/sdk:${DOTNET_VERSION} AS build
+WORKDIR /src
+COPY Directory.Build.props ./
+COPY src/Wings.NotificationHub.Contracts/Wings.NotificationHub.Contracts.csproj src/Wings.NotificationHub.Contracts/
+COPY src/Wings.NotificationHub.Core/Wings.NotificationHub.Core.csproj src/Wings.NotificationHub.Core/
+COPY src/Wings.NotificationHub.Infrastructure/Wings.NotificationHub.Infrastructure.csproj src/Wings.NotificationHub.Infrastructure/
+COPY src/Wings.NotificationHub.Worker/Wings.NotificationHub.Worker.csproj src/Wings.NotificationHub.Worker/
+RUN --mount=type=cache,id=wnh-nuget,target=/root/.nuget/packages \
+    dotnet restore src/Wings.NotificationHub.Worker/Wings.NotificationHub.Worker.csproj
+COPY src/Wings.NotificationHub.Contracts/ src/Wings.NotificationHub.Contracts/
+COPY src/Wings.NotificationHub.Core/ src/Wings.NotificationHub.Core/
+COPY src/Wings.NotificationHub.Infrastructure/ src/Wings.NotificationHub.Infrastructure/
+COPY src/Wings.NotificationHub.Worker/ src/Wings.NotificationHub.Worker/
+RUN --mount=type=cache,id=wnh-nuget,target=/root/.nuget/packages \
+    dotnet publish src/Wings.NotificationHub.Worker/Wings.NotificationHub.Worker.csproj -c Release -o /app/publish --no-restore -p:UseAppHost=false
+
+FROM mcr.microsoft.com/dotnet/aspnet:${DOTNET_VERSION} AS final
+RUN mkdir -p /var/lib/wings-notification-hub && chown "$APP_UID" /var/lib/wings-notification-hub
+WORKDIR /app
+COPY --from=build /app/publish ./
+ENV DOTNET_ENVIRONMENT=Production \
+    Hub__DataDirectory=/var/lib/wings-notification-hub \
+    ConnectionStrings__NotificationHub="Data Source=/var/lib/wings-notification-hub/notification-hub.db"
+VOLUME ["/var/lib/wings-notification-hub"]
+USER $APP_UID
+# No HTTP endpoint: liveness is the process itself (restart policy) plus the heartbeat rows the worker writes,
+# which the API's monitoring endpoint reports.
+ENTRYPOINT ["dotnet", "Wings.NotificationHub.Worker.dll"]

@@ -1,0 +1,51 @@
+{
+  "name": "@wings/notification-hub-client",
+  "version": "1.0.0",
+  "description": "TypeScript SDK for Wings Notification Hub: server client (client credentials, send, events, templates, devices, inbox tokens, webhooks) and a browser in-app inbox client.",
+  "license": "UNLICENSED",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./inbox": {
+      "types": "./dist/inbox.d.ts",
+      "import": "./dist/inbox.js"
+    },
+    "./webhooks": {
+      "types": "./dist/webhooks.d.ts",
+      "import": "./dist/webhooks.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "sideEffects": false,
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "peerDependencies": {
+    "@microsoft/signalr": ">=8.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@microsoft/signalr": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@microsoft/signalr": "^10.0.11",
+    "@types/node": "^24.0.0",
+    "typescript": "~6.0.2",
+    "vitest": "^5.0.5"
+  }
+}

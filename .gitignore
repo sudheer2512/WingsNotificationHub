@@ -1,0 +1,10 @@
+bin/
+obj/
+node_modules/
+App_Data/
+*.db
+*.db-shm
+*.db-wal
+.angular/
+src/Wings.NotificationHub.Api/wwwroot/
+clients/typescript/dist/

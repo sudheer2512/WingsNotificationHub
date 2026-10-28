@@ -1,0 +1,37 @@
+{
+  "name": "@wings/notification-hub-angular",
+  "version": "1.0.0",
+  "description": "Angular 22 in-app inbox for Wings Notification Hub: <wings-inbox-bell> with unread badge, dropdown panel and toasts.",
+  "license": "UNLICENSED",
+  "scripts": {
+    "build": "ng-packagr -p ng-package.json -c tsconfig.lib.prod.json",
+    "build:client": "npm --prefix ../typescript run build",
+    "test": "node --test --disable-warning=MODULE_TYPELESS_PACKAGE_JSON src/lib/utils.spec.ts"
+  },
+  "peerDependencies": {
+    "@angular/cdk": "^22.2.4",
+    "@angular/common": "^22.2.0",
+    "@angular/core": "^22.2.0",
+    "@angular/router": "^22.2.0",
+    "@microsoft/signalr": "^10.0.11",
+    "@wings/notification-hub-client": "^1.0.0"
+  },
+  "dependencies": {
+    "tslib": "^2.3.0"
+  },
+  "devDependencies": {
+    "@angular/cdk": "^22.2.4",
+    "@angular/common": "^22.2.0",
+    "@angular/compiler": "^22.2.0",
+    "@angular/compiler-cli": "^22.2.0",
+    "@angular/core": "^22.2.0",
+    "@angular/platform-browser": "^22.2.0",
+    "@angular/router": "^22.2.0",
+    "@microsoft/signalr": "^10.0.11",
+    "@wings/notification-hub-client": "file:../typescript",
+    "ng-packagr": "^22.2.5",
+    "rxjs": "~7.8.0",
+    "typescript": "~6.0.2"
+  },
+  "sideEffects": false
+}

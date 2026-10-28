@@ -1,0 +1,26 @@
+# Used by BuildKit for Dockerfile.worker (build context = repository root).
+**/.git
+**/.vs
+**/.vscode
+**/.idea
+**/bin
+**/obj
+**/node_modules
+**/.angular
+**/dist
+**/out-tsc
+**/*.user
+**/App_Data
+**/*.db
+**/*.db-shm
+**/*.db-wal
+**/dev-credentials.env
+**/.env
+**/.env.*
+# The image's UI is always built from web/, never copied from a local build.
+src/Wings.NotificationHub.Api/wwwroot
+tests
+samples
+clients
+docs
+web

@@ -1,0 +1,71 @@
+# Wings Notification Hub worker (outbox relay, queue consumers, dispatch, scheduler, reconciliation, retention).
+#
+# Install (as root):
+#   useradd --system --home-dir /opt/wings-notification-hub --shell /usr/sbin/nologin wnh
+#   dotnet publish src/Wings.NotificationHub.Worker -c Release -o /opt/wings-notification-hub/worker
+#   install -d -m 0750 -o root -g wnh /etc/wings-notification-hub
+#   install -m 0640 -o root -g wnh deploy/systemd/worker.env.example /etc/wings-notification-hub/worker.env   # then edit
+#   install -m 0644 deploy/systemd/wings-notification-hub-worker.service /etc/systemd/system/
+#   systemctl daemon-reload && systemctl enable --now wings-notification-hub-worker
+#   journalctl -u wings-notification-hub-worker -f
+#
+# Run several instances on different hosts to scale out: they coordinate through leases in the database.
+# Set Workers__RunInApi=false on the API when this worker is deployed.
+
+[Unit]
+Description=Wings Notification Hub worker
+Documentation=file:///opt/wings-notification-hub/README.md
+After=network-online.target
+Wants=network-online.target
+# Restart limits: give up after 10 failed starts within 10 minutes (then alert on the failed unit).
+StartLimitIntervalSec=600
+StartLimitBurst=10
+
+[Service]
+# The worker does not use sd_notify, so "exec" (not "notify").
+Type=exec
+User=wnh
+Group=wnh
+WorkingDirectory=/opt/wings-notification-hub/worker
+ExecStart=/usr/bin/dotnet /opt/wings-notification-hub/worker/Wings.NotificationHub.Worker.dll
+Environment=DOTNET_ENVIRONMENT=Production
+Environment=DOTNET_NOLOGO=1
+Environment=Hub__DataDirectory=/var/lib/wings-notification-hub
+# Connection strings, keys, transport settings (KEY=VALUE lines, root:wnh 0640).
+EnvironmentFile=/etc/wings-notification-hub/worker.env
+
+Restart=always
+RestartSec=5
+# SIGTERM triggers the generic host's graceful shutdown (HostOptions.ShutdownTimeout = 30 s).
+KillSignal=SIGTERM
+TimeoutStopSec=45
+SyslogIdentifier=wings-notification-hub-worker
+
+# /var/lib/wings-notification-hub (attachments, generated files), owned by User.
+StateDirectory=wings-notification-hub
+StateDirectoryMode=0750
+
+# Hardening (the .NET JIT needs writable+executable memory, so MemoryDenyWriteExecute stays off).
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+ProtectClock=true
+ProtectHostname=true
+RestrictSUIDSGID=true
+RestrictRealtime=true
+RestrictNamespaces=true
+LockPersonality=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK
+CapabilityBoundingSet=
+AmbientCapabilities=
+UMask=0027
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

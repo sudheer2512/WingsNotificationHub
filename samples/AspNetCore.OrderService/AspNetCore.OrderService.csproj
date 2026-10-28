@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>Wings.Samples.OrderService</RootNamespace>
+    <UserSecretsId>wings-notification-hub-order-service-sample</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../src/Wings.NotificationHub.Client/Wings.NotificationHub.Client.csproj" />
+  </ItemGroup>
+
+</Project>

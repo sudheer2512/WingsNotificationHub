@@ -1,0 +1,28 @@
+@service = http://localhost:5492
+@user = u-1001
+
+### Direct send (in-app + push, idempotent per order and user)
+POST {{service}}/orders/SO-1001/notify
+Content-Type: application/json
+
+{ "userId": "{{user}}", "amount": 18450, "channels": ["inapp", "push"] }
+
+### Business event: salesorder.approved (rules choose channels/recipients)
+POST {{service}}/orders/SO-1002/approve
+Content-Type: application/json
+
+{ "requesterUserId": "{{user}}", "amount": 184500, "approvedBy": "Rahul Verma" }
+
+### Inbox token for the signed-in user (demo auth header)
+GET {{service}}/me/inbox-token
+X-User-Id: {{user}}
+
+### Register a push device for the signed-in user
+POST {{service}}/me/devices
+X-User-Id: {{user}}
+Content-Type: application/json
+
+{ "platform": "android", "token": "demo-fcm-registration-token", "deviceName": "Pixel 8", "appVersion": "1.0.0" }
+
+### Verified webhook events received from the hub
+GET {{service}}/webhooks/events

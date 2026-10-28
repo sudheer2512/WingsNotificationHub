@@ -1,0 +1,15 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Wings.NotificationHub.Contracts/Wings.NotificationHub.Contracts.csproj" />
+    <Project Path="src/Wings.NotificationHub.Core/Wings.NotificationHub.Core.csproj" />
+    <Project Path="src/Wings.NotificationHub.Infrastructure/Wings.NotificationHub.Infrastructure.csproj" />
+    <Project Path="src/Wings.NotificationHub.Api/Wings.NotificationHub.Api.csproj" />
+    <Project Path="src/Wings.NotificationHub.Worker/Wings.NotificationHub.Worker.csproj" />
+    <Project Path="src/Wings.NotificationHub.Client/Wings.NotificationHub.Client.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Wings.NotificationHub.UnitTests/Wings.NotificationHub.UnitTests.csproj" />
+    <Project Path="tests/Wings.NotificationHub.IntegrationTests/Wings.NotificationHub.IntegrationTests.csproj" />
+    <Project Path="tests/Wings.NotificationHub.LoadTests/Wings.NotificationHub.LoadTests.csproj" />
+  </Folder>
+</Solution>

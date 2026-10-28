@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <!-- Lets the project build on macOS/Linux (it only runs on Windows). -->
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <RootNamespace>Wings.NotificationHub.WinForms</RootNamespace>
+    <PackageId>Wings.NotificationHub.WinForms</PackageId>
+    <Description>Windows Forms in-app inbox for Wings Notification Hub: InboxClient (REST + SignalR), NotificationBellControl, InboxPanel, InboxForm and toasts.</Description>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="10.0.14" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\src\Wings.NotificationHub.Contracts\Wings.NotificationHub.Contracts.csproj" />
+  </ItemGroup>
+
+</Project>

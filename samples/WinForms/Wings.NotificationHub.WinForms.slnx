@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="Wings.NotificationHub.WinForms/Wings.NotificationHub.WinForms.csproj" />
+  <Project Path="Wings.NotificationHub.WinForms.Sample/Wings.NotificationHub.WinForms.Sample.csproj" />
+</Solution>

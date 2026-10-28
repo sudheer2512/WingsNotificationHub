@@ -1,0 +1,155 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.wings.example/notification-hub/notification-manifest-1.0.json",
+  "title": "Wings Notification Hub manifest",
+  "description": "Notification configuration a Wings Code generated application registers during deployment (POST /api/v1/registrations/manifest, scope applications.register). Registration is an idempotent upsert keyed by application code. Mirrors Wings.NotificationHub.Contracts.NotificationManifest (JSON camelCase; the hub reads property names case-insensitively).",
+  "type": "object",
+  "required": ["application"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "type": "string", "description": "Editor hint; ignored by the hub." },
+    "schemaVersion": { "type": "string", "const": "1.0", "default": "1.0" },
+    "application": { "$ref": "#/$defs/application" },
+    "companies": {
+      "type": "array",
+      "description": "Codes of companies (in the registering tenant) that may use the application. Unknown codes are skipped with a warning.",
+      "items": { "type": "string", "minLength": 1, "maxLength": 100 },
+      "uniqueItems": true,
+      "default": []
+    },
+    "channels": {
+      "type": "array",
+      "description": "Channels the application may use (application allow-list). When non-empty, every template's channel must be listed here.",
+      "items": { "$ref": "#/$defs/channel" },
+      "uniqueItems": true,
+      "default": []
+    },
+    "notificationTypes": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/notificationType" },
+      "default": []
+    },
+    "templates": {
+      "type": "array",
+      "description": "Registered as Draft versions that go through review/approval (auto-approved only for sandbox applications). An unchanged subject/body is not re-registered.",
+      "maxItems": 500,
+      "items": { "$ref": "#/$defs/template" },
+      "default": []
+    },
+    "webhooks": {
+      "type": "array",
+      "description": "Webhook subscriptions to create (an existing subscription with the same URL is left alone). Signing secrets of new subscriptions are returned once in webhookSecrets.",
+      "items": { "$ref": "#/$defs/webhook" },
+      "default": []
+    },
+    "credential": {
+      "description": "Create a client credential when the application has none (the secret is returned once).",
+      "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/credential" }]
+    }
+  },
+  "$defs": {
+    "channel": {
+      "type": "string",
+      "description": "Lower-case wire name. The hub also accepts different casing and the aliases in_app, in-app, web_push, mobilepush, browserpush.",
+      "enum": ["email", "sms", "whatsapp", "inapp", "push", "webpush", "webhook"]
+    },
+    "messageClass": {
+      "type": "string",
+      "description": "Transactional: essential messages about a transaction. Promotional: needs marketing consent, honours unsubscribe. Critical: security/regulatory, ignores opt-out preferences.",
+      "enum": ["Transactional", "Promotional", "Critical"]
+    },
+    "priority": { "type": "string", "enum": ["Low", "Normal", "High", "Critical"] },
+    "code": {
+      "type": "string",
+      "description": "Stored upper-case.",
+      "pattern": "^[A-Za-z0-9_.-]{2,100}$"
+    },
+    "application": {
+      "type": "object",
+      "required": ["code", "name"],
+      "additionalProperties": false,
+      "properties": {
+        "code": { "$ref": "#/$defs/code", "description": "Stable application code (idempotency key of the registration), e.g. WINGS-FIELD-SERVICE." },
+        "name": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "description": { "type": ["string", "null"], "maxLength": 2000 },
+        "defaultLocale": { "type": "string", "default": "en", "pattern": "^[a-zA-Z]{2,3}(-[A-Za-z0-9]{2,8})*$" },
+        "sandbox": { "type": "boolean", "default": false, "description": "Sandbox applications are routed to mock providers only and their templates are auto-approved (pre-deployment testing)." }
+      }
+    },
+    "notificationType": {
+      "type": "object",
+      "required": ["code", "name"],
+      "additionalProperties": false,
+      "properties": {
+        "code": { "$ref": "#/$defs/code", "description": "Notification type code used by send requests, e.g. JOB_ASSIGNED." },
+        "name": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "description": { "type": ["string", "null"] },
+        "category": { "type": "string", "default": "General", "description": "Preference category shown to recipients (e.g. Invoice, Approval)." },
+        "messageClass": { "$ref": "#/$defs/messageClass", "default": "Transactional" },
+        "defaultChannels": { "type": "array", "items": { "$ref": "#/$defs/channel" }, "uniqueItems": true, "default": [] },
+        "defaultTemplateCode": { "type": ["string", "null"], "description": "Template used when a send request names only the notification type." },
+        "defaultPriority": { "$ref": "#/$defs/priority", "default": "Normal" },
+        "events": { "type": "array", "items": { "type": "string" }, "default": [], "description": "Business event types (e.g. job.assigned) that raise this notification; documentation and rule wiring." },
+        "aiAllowed": { "type": "boolean", "default": false, "description": "May AI agents (MCP) send this type?" },
+        "requiresHumanApprovalForAi": { "type": "boolean", "default": true }
+      }
+    },
+    "templateVariable": {
+      "type": "object",
+      "required": ["name"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_.]*$" },
+        "required": { "type": "boolean", "default": true },
+        "sampleValue": { "type": ["string", "null"], "description": "Used for previews and test sends." },
+        "description": { "type": ["string", "null"] }
+      }
+    },
+    "template": {
+      "type": "object",
+      "required": ["code", "name", "channel", "body"],
+      "additionalProperties": false,
+      "properties": {
+        "code": { "$ref": "#/$defs/code" },
+        "name": { "type": "string", "minLength": 1 },
+        "channel": { "$ref": "#/$defs/channel" },
+        "locale": { "type": "string", "default": "en" },
+        "category": { "type": ["string", "null"] },
+        "subject": { "type": ["string", "null"], "description": "Email subject; in-app/push title." },
+        "body": { "type": "string", "minLength": 1, "description": "Template text with {{Variable}} placeholders, filters ({{Amount | currency:INR}}) and {{#if}} blocks." },
+        "bodyFormat": { "type": "string", "enum": ["Text", "Html"], "default": "Text" },
+        "variables": { "type": "array", "items": { "$ref": "#/$defs/templateVariable" }, "default": [] }
+      }
+    },
+    "webhook": {
+      "type": "object",
+      "required": ["url", "eventTypes"],
+      "additionalProperties": false,
+      "properties": {
+        "url": { "type": "string", "format": "uri", "pattern": "^https://", "description": "https only (http is accepted only on hubs configured with Webhooks:AllowHttp, i.e. development)." },
+        "eventTypes": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "enum": ["*", "delivery.status_changed", "notification.completed", "inbound.message_received", "push.interaction", "inapp.action", "notification.webhook"] }
+        }
+      }
+    },
+    "credential": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string", "default": "default" },
+        "scopes": {
+          "type": ["array", "null"],
+          "description": "Defaults to the application scopes. applications.register is never allowed here.",
+          "uniqueItems": true,
+          "items": {
+            "enum": ["notifications.send", "notifications.read", "notifications.batch", "events.publish", "templates.read", "templates.write", "contacts.write",
+                     "devices.write", "preferences.read", "preferences.write", "inapp.token", "usage.read", "providers.health", "webhooks.manage", "mcp"]
+          }
+        }
+      }
+    }
+  }
+}

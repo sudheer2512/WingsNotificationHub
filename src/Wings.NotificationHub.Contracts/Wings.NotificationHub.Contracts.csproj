@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Wings.NotificationHub.Contracts</RootNamespace>
+    <TargetFrameworks>net10.0;net8.0</TargetFrameworks>
+    <TargetFramework></TargetFramework>
+    <PackageId>Wings.NotificationHub.Contracts</PackageId>
+    <Description>Request/response contracts for the Wings Notification Hub REST API.</Description>
+  </PropertyGroup>
+</Project>

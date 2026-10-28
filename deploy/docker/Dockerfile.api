@@ -1,0 +1,76 @@
+# syntax=docker/dockerfile:1.7
+#
+# Wings Notification Hub — API (REST, SignalR hubs, admin UI).
+# Build context: repository root (BuildKit uses Dockerfile.api.dockerignore next to this file).
+#
+#   docker build -f deploy/docker/Dockerfile.api -t wings/notification-hub-api:latest .
+#
+# The Angular admin UI is built from web/ when web/package.json exists and served from wwwroot;
+# otherwise the image is API-only (the step logs that it skipped the UI).
+
+ARG DOTNET_VERSION=10.0
+ARG NODE_VERSION=24
+
+# ── 1. Isolate web/ so the UI build cache only depends on the UI sources ──
+FROM busybox:1.37 AS webctx
+RUN --mount=type=bind,target=/ctx \
+    mkdir -p /web && if [ -f /ctx/web/package.json ]; then cp -a /ctx/web/. /web/; fi
+
+# ── 2. Build the admin UI (skipped gracefully when there is no web/package.json) ──
+FROM node:${NODE_VERSION}-bookworm-slim AS ui
+WORKDIR /build/web
+COPY --from=webctx /web/ ./
+RUN --mount=type=cache,id=wnh-npm,target=/root/.npm <<'EOF'
+set -eu
+mkdir -p /ui-out
+if [ ! -f package.json ]; then
+  echo "web/package.json not found: building an API-only image (no admin UI)."
+  exit 0
+fi
+if [ -f package-lock.json ]; then npm ci --no-audit --no-fund; else npm install --no-audit --no-fund; fi
+npm run build
+# angular.json may write to ../src/Wings.NotificationHub.Api/wwwroot or to dist/<project>[/browser].
+index="$(find /build -path /build/web/node_modules -prune -o -name index.html -print | grep -E '/(wwwroot|dist)/' | head -n 1 || true)"
+if [ -z "$index" ]; then echo "The UI build produced no index.html under dist/ or wwwroot/." >&2; exit 1; fi
+cp -a "$(dirname "$index")"/. /ui-out/
+echo "Admin UI built from $(dirname "$index")."
+EOF
+
+# ── 3. Restore and publish the API ──
+FROM mcr.microsoft.com/dotnet/sdk:${DOTNET_VERSION} AS build
+WORKDIR /src
+COPY Directory.Build.props ./
+COPY src/Wings.NotificationHub.Contracts/Wings.NotificationHub.Contracts.csproj src/Wings.NotificationHub.Contracts/
+COPY src/Wings.NotificationHub.Core/Wings.NotificationHub.Core.csproj src/Wings.NotificationHub.Core/
+COPY src/Wings.NotificationHub.Infrastructure/Wings.NotificationHub.Infrastructure.csproj src/Wings.NotificationHub.Infrastructure/
+COPY src/Wings.NotificationHub.Api/Wings.NotificationHub.Api.csproj src/Wings.NotificationHub.Api/
+RUN --mount=type=cache,id=wnh-nuget,target=/root/.nuget/packages \
+    dotnet restore src/Wings.NotificationHub.Api/Wings.NotificationHub.Api.csproj
+COPY src/ src/
+COPY --from=ui /ui-out/ src/Wings.NotificationHub.Api/wwwroot/
+RUN --mount=type=cache,id=wnh-nuget,target=/root/.nuget/packages \
+    dotnet publish src/Wings.NotificationHub.Api/Wings.NotificationHub.Api.csproj -c Release -o /app/publish --no-restore -p:UseAppHost=false
+
+# ── 4. Runtime: ASP.NET Core image, non-root ──
+FROM mcr.microsoft.com/dotnet/aspnet:${DOTNET_VERSION} AS final
+# curl is only used by the HEALTHCHECK below.
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends curl \
+ && rm -rf /var/lib/apt/lists/* \
+ && mkdir -p /var/lib/wings-notification-hub \
+ && chown "$APP_UID" /var/lib/wings-notification-hub
+WORKDIR /app
+COPY --from=build /app/publish ./
+ENV ASPNETCORE_HTTP_PORTS=8080 \
+    ASPNETCORE_ENVIRONMENT=Production \
+    Hub__DataDirectory=/var/lib/wings-notification-hub \
+    ConnectionStrings__NotificationHub="Data Source=/var/lib/wings-notification-hub/notification-hub.db" \
+    Https__Redirect=false
+# Attachments, SQLite (when used) and generated files live here; mount a volume shared with the worker.
+VOLUME ["/var/lib/wings-notification-hub"]
+EXPOSE 8080
+# APP_UID (1654, user "app") is defined by the official .NET images.
+USER $APP_UID
+HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
+  CMD curl -fsS http://localhost:8080/health/live || exit 1
+ENTRYPOINT ["dotnet", "Wings.NotificationHub.Api.dll"]
