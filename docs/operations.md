@@ -78,6 +78,12 @@ roles without `ViewMessageContent`.
 * Admin console → System Monitoring (`GET /api/v1/monitoring`): queue depths (ready/in-flight/dead-lettered), outbox
   backlog, workers per instance (heartbeat every 15 s; *unresponsive* after 2 min), retries, deliveries awaiting an
   operator, dead letters (requeue), provider errors (24 h), circuit breakers, alerts.
+* That view follows the caller's grants. A platform-wide grant sees everything. Other callers do not get queues, the
+  outbox backlog or workers, because those serve every tenant. Retries, deliveries awaiting an operator and provider
+  errors cover the deliveries they can see, and circuit breakers the providers they can see. Dead letters and requeue
+  need a grant on a whole tenant and cover that tenant only. `QueueMessages.TenantId` is copied from the outbox, so a
+  message queued before the `AddQueueMessageTenant` migration has none and stays with platform-wide grants. On
+  RabbitMQ, dead letters stay in the broker's DLQs, so the list is empty and only the queue counts report them.
 * Metrics (OpenTelemetry meter `Wings.NotificationHub`): `wnh.notifications.accepted`, `wnh.deliveries.outcomes`
   (provider/channel/outcome), `wnh.provider.latency`, `wnh.callbacks`, plus ASP.NET Core and HttpClient metrics.
 * Traces: `notification.accept`, `delivery.dispatch`, `consume <type>` spans + incoming/outgoing HTTP.

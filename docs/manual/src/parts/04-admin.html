@@ -303,8 +303,8 @@
 
 <h2 id="ch-monitoring" class="flow" data-ix="System monitoring|Alerts|Workers|Circuit breaker">System monitoring</h2>
 <p class="lead">This screen shows whether the hub itself is healthy. It refreshes every 15 seconds.</p>
-<div class="who"><b>Who can do this:</b> administrators, notification operators and auditors can read it. Everyone except auditors can acknowledge alerts. <b>Requeue</b> is for platform administrators, tenant administrators and notification operators who cover a whole tenant.</div>
-<fig src="monitoring.jpg" cap="System monitoring: summary cards, queues, workers and open alerts."/>
+<div class="who"><b>Who can do this:</b> administrators, notification operators and auditors can read it, and each role sees only the part its access covers (see <x to="sec-mon-roles"/>). Everyone except auditors can acknowledge alerts. <b>Requeue</b> is for platform administrators, and for tenant administrators and notification operators who cover a whole tenant.</div>
+<fig src="monitoring.jpg" cap="System monitoring as a platform administrator sees it: summary cards, queues, workers and open alerts."/>
 <div class="tw"><table>
 <thead><tr><th style="width:24%">Panel or card</th><th>What it tells you</th><th style="width:32%">What to do</th></tr></thead>
 <tbody>
@@ -317,12 +317,24 @@
 <tr><th>Alerts</th><td>Things the hub wants a person to see, by severity.</td><td>Read it, deal with it, select <b>Acknowledge</b>.</td></tr>
 <tr><th>Provider errors (24 h)</th><td>Error codes per provider.</td><td>Look for a sudden new code.</td></tr>
 </tbody></table></div>
+<h3 id="sec-mon-roles" data-ix="System monitoring|Dead letters">What each role sees</h3>
+<p>Platform administrators see every panel, for every tenant. Other roles see only their own part:</p>
+<div class="tw"><table>
+<thead><tr><th style="width:34%">Panel or card</th><th>A role covering a whole tenant</th><th>A role covering one company or application</th></tr></thead>
+<tbody>
+<tr><th>Retry backlog, Awaiting operator, Provider errors (24 h)</th><td>That tenant's deliveries.</td><td>The deliveries of that company or application.</td></tr>
+<tr><th>Dead letters</th><td>That tenant's items, unless the role is limited to one channel.</td><td>Not shown. A dead letter belongs to a tenant, not to a company, application or channel.</td></tr>
+<tr><th>Open circuits, Circuit breakers</th><td colspan="2">The providers the role can see on the <b>Providers</b> screen, including shared ones.</td></tr>
+<tr><th>Alerts</th><td colspan="2">That tenant's alerts. Alerts about the hub as a whole are for platform administrators.</td></tr>
+<tr><th>Queued messages, Queues, Unresponsive workers, Workers</th><td colspan="2">Not shown. These serve every tenant, so their figures would reveal other tenants' activity.</td></tr>
+</tbody></table></div>
 <h3 id="sec-dead" data-ix="Dead letters|Requeue">Requeuing a dead letter</h3>
 <ol class="steps">
   <li>Find the item under <b>Dead letters</b>. Read <b>Last error</b> and fix the cause if you can.</li>
   <li>Select <b>Requeue</b>, then <b>Requeue</b> to confirm. You see <code>Requeued</code>.</li>
 </ol>
 <p>If it fails again, it returns to this list. Dead letters are kept for 30 days.</p>
+<p>The <b>Requeue</b> button appears only on items you can requeue. An auditor sees the item without the button. An item with no tenant, such as one queued before an upgrade, is visible only to platform administrators.</p>
 
 <h2 id="ch-suspension" data-ix="Emergency suspension|Suspend|Resume">Emergency suspension</h2>
 <p class="lead">If something goes wrong, such as a compromised sender or a campaign sent in error, stop it here. Pending messages are held, not lost, and continue when you resume.</p>

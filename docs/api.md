@@ -79,7 +79,7 @@ Send request fields: `applicationId?` (taken from the token for apps), `companyI
 * Campaigns & schedules: `/campaigns` (+`GET {id}` for the editable fields, `import`, `test-send`, `submit`, `approve`, `pause`, `resume`, `cancel`, `recipients`), `/schedules` (+`PUT {id}`), `/holiday-calendars` (+`PUT|DELETE {id}`).
 * Communications: `/conversations` (+`/{id}`, `read`, `reply`), `/attachments`, `/webhooks` (+`attempts`, `test`, `enable`),
   `/inapp/tokens`, `/inapp/messages` (+`/{id}/read|unread|archive|dismiss|action`, `read-all`), `/inapp/branding`, `/push/events`.
-* Reporting: `/dashboard`, `/reports`, `/reports/{code}?format=csv|xlsx`, `/usage?groupBy=…`, `/monitoring`.
+* Reporting: `/dashboard`, `/reports`, `/reports/{code}?format=csv|xlsx`, `/usage?groupBy=…`, `/monitoring` (`queues`, `outboxBacklog` and `workers` only for platform-wide grants, `deadLetters` only for a grant on a whole tenant, each row with `canRequeue`).
 * Provider callbacks: `GET|POST /api/v1/callbacks/{providerAccountId}` (configure this URL at the provider).
 * Real time: SignalR `/hubs/inapp` (event `notification`) and `/hubs/admin` (events `delivery`, `inbound`); pass the token as `access_token`.
 * MCP: `POST /mcp` — see [wings-integration.md](wings-integration.md).

@@ -69,11 +69,13 @@ export interface Dashboard {
 }
 export interface SystemAlert { id: Uuid; tenantId?: Uuid | null; severity: string; source: string; message: string; createdAt: string; acknowledgedAt?: string | null; }
 export interface Monitoring {
-  transport: string; queues: Record<string, QueueStats>; outboxBacklog: number;
-  workers: { worker: string; instance: string; status: string; processed: number; failed: number; lastError?: string | null; startedAt: string; lastHeartbeatAt: string }[];
+  transport: string;
+  // Queues, the outbox and workers serve every tenant, so these arrive only for platform-wide access.
+  queues?: Record<string, QueueStats> | null; outboxBacklog?: number | null;
+  workers?: { worker: string; instance: string; status: string; processed: number; failed: number; lastError?: string | null; startedAt: string; lastHeartbeatAt: string }[] | null;
   retries: number; awaitingOperator: number;
-  canRequeue: boolean;
-  deadLetters: { id: Uuid; queue: string; type: string; dequeueCount: number; lastError?: string | null; deadLetteredAt: string; enqueuedAt: string }[];
+  // Absent without a grant on a whole tenant: a queue message has a tenant but no company or application.
+  deadLetters?: { id: Uuid; queue: string; type: string; dequeueCount: number; lastError?: string | null; deadLetteredAt: string; enqueuedAt: string; canRequeue: boolean }[] | null;
   providerErrors24h: { providerAccountId?: Uuid | null; errorCode?: string | null; n: number }[];
   circuits: { providerAccountId: Uuid; failures: number; openUntil?: string | null }[];
   alerts: SystemAlert[];

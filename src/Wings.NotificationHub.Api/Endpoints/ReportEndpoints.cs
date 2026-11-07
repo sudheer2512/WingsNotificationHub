@@ -118,35 +118,51 @@ public static class ReportEndpoints
         m.MapGet("", async (HttpContext ctx, NotificationHubDbContext db, IMessageBus bus, CircuitBreakerRegistry circuits) =>
         {
             var caller = await ctx.CallerAsync();
-            if (!caller.Grants.Any(g => RolePermissions.Has(g.Role, Permission.ViewMonitoring))) throw new AccessDeniedException();
-            var heartbeats = await db.WorkerHeartbeats.AsNoTracking().OrderBy(h => h.Worker).ToListAsync(ctx.RequestAborted);
+            var filter = caller.FilterFor(Permission.ViewMonitoring);
+            if (filter.IsEmpty) throw new AccessDeniedException();
+            // Queues, the outbox and workers serve every tenant, so their figures and errors stay with platform-wide grants.
+            var platformWide = filter.IsUnrestricted;
+            var heartbeats = platformWide ? await db.WorkerHeartbeats.AsNoTracking().OrderBy(h => h.Worker).ToListAsync(ctx.RequestAborted) : null;
             var stale = DateTime.UtcNow.AddMinutes(-2);
-            var dead = await db.QueueMessages.AsNoTracking().Where(q => q.DeadLetteredAt != null).OrderByDescending(q => q.DeadLetteredAt).Take(50)
-                .Select(q => new { q.Id, q.Queue, q.Type, q.DequeueCount, q.LastError, q.DeadLetteredAt, q.EnqueuedAt }).ToListAsync(ctx.RequestAborted);
+            var viewable = QueueReach.Of(caller, Permission.ViewMonitoring);
+            var requeueable = QueueReach.Of(caller, Permission.RetryDeliveries);
+            var dead = await viewable.DeadLetters(db.QueueMessages.AsNoTracking()).OrderByDescending(q => q.DeadLetteredAt).Take(50)
+                .Select(q => new { q.Id, q.Queue, q.Type, q.TenantId, q.DequeueCount, q.LastError, q.DeadLetteredAt, q.EnqueuedAt }).ToListAsync(ctx.RequestAborted);
             var alerts = await db.SystemAlerts.AsNoTracking().Where(a => a.AcknowledgedAt == null).OrderByDescending(a => a.CreatedAt).Take(100).ToListAsync(ctx.RequestAborted);
-            var outboxBacklog = await db.OutboxMessages.CountAsync(o => o.PublishedAt == null, ctx.RequestAborted);
-            var errors = await db.DeliveryAttempts.AsNoTracking().Where(a => a.Outcome != AttemptOutcome.Accepted && a.StartedAt >= DateTime.UtcNow.AddHours(-24))
+            var deliveries = db.NotificationDeliveries.AsNoTracking().Visible(filter);
+            var attempts = db.DeliveryAttempts.AsNoTracking().Where(a => a.Outcome != AttemptOutcome.Accepted && a.StartedAt >= DateTime.UtcNow.AddHours(-24));
+            if (!platformWide) attempts = attempts.Where(a => deliveries.Select(d => d.Id).Contains(a.DeliveryId));
+            var errors = await attempts
                 .GroupBy(a => new { a.ProviderAccountId, a.ErrorCode }).Select(x => new { x.Key.ProviderAccountId, x.Key.ErrorCode, n = x.Count() }).OrderByDescending(x => x.n).Take(30).ToListAsync(ctx.RequestAborted);
+            var providers = platformWide ? null : await ProviderEndpoints.VisibleAccounts(db, caller, Permission.ViewMonitoring).Select(a => a.Id).ToListAsync(ctx.RequestAborted);
             return Results.Ok(new
             {
-                transport = bus.Name, queues = await bus.GetStatsAsync(ctx.RequestAborted), outboxBacklog, canRequeue = CanRequeue(caller),
-                workers = heartbeats.Select(h => new { h.Worker, h.Instance, status = h.LastHeartbeatAt < stale && h.Status == "running" ? "unresponsive" : h.Status, h.Processed, h.Failed, h.LastError, h.StartedAt, h.LastHeartbeatAt }),
-                retries = await db.NotificationDeliveries.CountAsync(d => d.Status == DeliveryStatus.RetryPending, ctx.RequestAborted),
-                awaitingOperator = await db.NotificationDeliveries.CountAsync(d => d.AwaitingOperator, ctx.RequestAborted),
-                deadLetters = dead, providerErrors24h = errors,
-                circuits = circuits.Snapshot().Select(kv => new { providerAccountId = kv.Key, kv.Value.Failures, kv.Value.OpenUntil }),
+                transport = bus.Name,
+                queues = platformWide ? await bus.GetStatsAsync(ctx.RequestAborted) : null,
+                outboxBacklog = platformWide ? await db.OutboxMessages.CountAsync(o => o.PublishedAt == null, ctx.RequestAborted) : (int?)null,
+                workers = heartbeats?.Select(h => new { h.Worker, h.Instance, status = h.LastHeartbeatAt < stale && h.Status == "running" ? "unresponsive" : h.Status, h.Processed, h.Failed, h.LastError, h.StartedAt, h.LastHeartbeatAt }),
+                retries = await deliveries.CountAsync(d => d.Status == DeliveryStatus.RetryPending, ctx.RequestAborted),
+                awaitingOperator = await deliveries.CountAsync(d => d.AwaitingOperator, ctx.RequestAborted),
+                deadLetters = viewable.IsEmpty ? null : dead.Select(q => new { q.Id, q.Queue, q.Type, q.DequeueCount, q.LastError, q.DeadLetteredAt, q.EnqueuedAt, canRequeue = requeueable.Covers(q.TenantId) }),
+                providerErrors24h = errors,
+                circuits = circuits.Snapshot().Where(kv => providers is null || providers.Contains(kv.Key)).Select(kv => new { providerAccountId = kv.Key, kv.Value.Failures, kv.Value.OpenUntil }),
                 alerts = alerts.Where(a => a.TenantId is null ? caller.IsPlatformAdmin : caller.Can(Permission.ViewMonitoring, a.TenantId)),
             });
-        }).WithSummary("Queues, workers, retries, dead letters, provider errors and alerts");
+        }).WithSummary("Queues, workers, retries, dead letters, provider errors and alerts, limited to what the caller's grants cover");
         m.MapPost("/dead-letters/{id:guid}/requeue", async (Guid id, HttpContext ctx, NotificationHubDbContext db, AuditService audit) =>
         {
             var caller = await ctx.CallerAsync();
-            if (!CanRequeue(caller)) throw new AccessDeniedException();
-            var n = await db.QueueMessages.Where(q => q.Id == id && q.DeadLetteredAt != null).ExecuteUpdateAsync(s => s.SetProperty(q => q.DeadLetteredAt, (DateTime?)null)
+            var reach = QueueReach.Of(caller, Permission.RetryDeliveries);
+            if (reach.IsEmpty) throw new AccessDeniedException();
+            // Another tenant's message answers exactly like one that does not exist.
+            var target = reach.DeadLetters(db.QueueMessages).Where(q => q.Id == id);
+            var tenantId = await target.Select(q => q.TenantId).FirstOrDefaultAsync(ctx.RequestAborted);
+            var n = await target.ExecuteUpdateAsync(s => s.SetProperty(q => q.DeadLetteredAt, (DateTime?)null)
                 .SetProperty(q => q.DequeueCount, 0).SetProperty(q => q.VisibleAt, DateTime.UtcNow).SetProperty(q => q.LeaseExpiresAt, (DateTime?)null), ctx.RequestAborted);
-            audit.Record(caller, "queue.requeued", nameof(QueueMessage), id.ToString(), null);
+            if (n == 0) return Results.NotFound();
+            audit.Record(caller, "queue.requeued", nameof(QueueMessage), id.ToString(), null, tenantId);
             await db.SaveChangesAsync(ctx.RequestAborted);
-            return n == 0 ? Results.NotFound() : Results.NoContent();
+            return Results.NoContent();
         });
         m.MapPost("/alerts/{id:guid}/ack", async (Guid id, HttpContext ctx, NotificationHubDbContext db) =>
         {
@@ -176,9 +192,30 @@ public static class ReportEndpoints
         }).WithTags("Reports & monitoring").RequireAuthorization("admin").WithSummary("Audit trail");
     }
 
-    /// <summary>Queue messages are shared by every tenant, so a company- or application-scoped grant is too narrow to requeue one.</summary>
-    private static bool CanRequeue(CallerContext caller)
-        => caller.Grants.Any(g => g.CompanyId is null && g.ApplicationId is null && RolePermissions.Has(g.Role, Permission.RetryDeliveries));
+    /// <summary>
+    /// The queue messages a permission reaches. A message carries a tenant but no company, application or channel, so only a
+    /// grant covering a whole tenant reaches one. <see cref="AccessFilter"/> cannot express this: Visible() would skip the
+    /// company clause and show a company administrator the whole tenant. A message with no tenant needs a platform-wide grant.
+    /// </summary>
+    private sealed record QueueReach(bool Everywhere, List<Guid> TenantIds)
+    {
+        public bool IsEmpty => !Everywhere && TenantIds.Count == 0;
+
+        public bool Covers(Guid? tenantId) => Everywhere || (tenantId is { } t && TenantIds.Contains(t));
+
+        public static QueueReach Of(CallerContext caller, Permission permission)
+        {
+            var grants = caller.Grants.Where(g => g.CompanyId is null && g.ApplicationId is null && g.Channel is null && RolePermissions.Has(g.Role, permission)).ToList();
+            return new(grants.Any(g => g.TenantId is null), [.. grants.Where(g => g.TenantId is not null).Select(g => g.TenantId!.Value).Distinct()]);
+        }
+
+        public IQueryable<QueueMessage> DeadLetters(IQueryable<QueueMessage> messages)
+        {
+            var dead = messages.Where(q => q.DeadLetteredAt != null);
+            var tenants = TenantIds;
+            return Everywhere ? dead : dead.Where(q => q.TenantId != null && tenants.Contains(q.TenantId.Value));
+        }
+    }
 
     private static IQueryable<NotificationDelivery> Deliveries(NotificationHubDbContext db, CallerContext caller, ReportFilter f, Permission permission = Permission.ViewUsage)
     {

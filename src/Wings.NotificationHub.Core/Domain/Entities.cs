@@ -1045,6 +1045,8 @@ public sealed class QueueMessage
     public string Type { get; set; } = "";
     public string PayloadJson { get; set; } = "{}";
     public Guid MessageId { get; set; }
+    /// <summary>Copied from the outbox row. Null means no tenant is known, so only platform-wide grants reach the message.</summary>
+    public Guid? TenantId { get; set; }
     public string? CorrelationId { get; set; }
     public DateTime EnqueuedAt { get; set; } = DateTime.UtcNow;
     public DateTime VisibleAt { get; set; } = DateTime.UtcNow;

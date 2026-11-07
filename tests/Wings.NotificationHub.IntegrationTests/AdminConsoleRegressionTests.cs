@@ -289,23 +289,28 @@ public class AdminConsoleRegressionTests(HubFactory hub)
     {
         async Task<Guid> DeadLetterAsync() => await hub.DbAsync(async db =>
         {
-            var q = new QueueMessage { Queue = "regression-dead", Type = "regression.noop", MessageId = Guid.NewGuid(), DeadLetteredAt = DateTime.UtcNow, VisibleAt = DateTime.UtcNow.AddDays(1), LastError = "boom" };
+            var q = new QueueMessage { Queue = "regression-dead", Type = "regression.noop", MessageId = Guid.NewGuid(), TenantId = hub.TenantId, DeadLetteredAt = DateTime.UtcNow, VisibleAt = DateTime.UtcNow.AddDays(1), LastError = "boom" };
             db.QueueMessages.Add(q);
             await db.SaveChangesAsync();
             return q.Id;
         });
+        async Task<bool> OfferedAsync(HttpClient http, Guid id) => (await Json(await http.GetAsync("/api/v1/monitoring"))).GetProperty("deadLetters").EnumerateArray()
+            .Single(m => m.GetProperty("id").GetGuid() == id).GetProperty("canRequeue").GetBoolean();
+
         var tenantAdmin = await hub.AdminHttpAsync("TENANT_ADMIN");
-        Assert.True((await Json(await tenantAdmin.GetAsync("/api/v1/monitoring"))).GetProperty("canRequeue").GetBoolean());
-        Assert.Equal(HttpStatusCode.NoContent, (await tenantAdmin.PostAsync($"/api/v1/monitoring/dead-letters/{await DeadLetterAsync()}/requeue", null)).StatusCode);
+        var letter = await DeadLetterAsync();
+        Assert.True(await OfferedAsync(tenantAdmin, letter));
+        Assert.Equal(HttpStatusCode.NoContent, (await tenantAdmin.PostAsync($"/api/v1/monitoring/dead-letters/{letter}/requeue", null)).StatusCode);
 
         var op = await hub.AdminHttpAsync("OPERATOR");
         Assert.Equal(HttpStatusCode.NoContent, (await op.PostAsync($"/api/v1/monitoring/dead-letters/{await DeadLetterAsync()}/requeue", null)).StatusCode);
 
         var auditor = await hub.AdminHttpAsync("AUDITOR");
-        Assert.False((await Json(await auditor.GetAsync("/api/v1/monitoring"))).GetProperty("canRequeue").GetBoolean());
-        Assert.Equal(HttpStatusCode.Forbidden, (await auditor.PostAsync($"/api/v1/monitoring/dead-letters/{await DeadLetterAsync()}/requeue", null)).StatusCode);
+        letter = await DeadLetterAsync();
+        Assert.False(await OfferedAsync(auditor, letter));
+        Assert.Equal(HttpStatusCode.Forbidden, (await auditor.PostAsync($"/api/v1/monitoring/dead-letters/{letter}/requeue", null)).StatusCode);
 
-        // A company-scoped grant is too narrow for a queue shared by every tenant.
+        // A queue message has a tenant but no company, so a company-scoped grant cannot reach one.
         var abcAdmin = await hub.AdminHttpAsync("ABC_ADMIN");
         Assert.Equal(HttpStatusCode.Forbidden, (await abcAdmin.PostAsync($"/api/v1/monitoring/dead-letters/{await DeadLetterAsync()}/requeue", null)).StatusCode);
     }

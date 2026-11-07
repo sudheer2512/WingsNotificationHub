@@ -109,7 +109,8 @@
 <tr><td>Manage users and roles</td><td><y/></td><td><y/></td><td><n/></td><td><n/></td><td><n/></td><td><n/></td><td><n/></td><td><n/></td><td><n/></td></tr>
 </tbody></table></div>
 <p><b>Platform administrator only:</b> create tenants, create shared providers, top up credits, change billing and cost rates, suspend tenants, grant the Platform administrator role, create platform-wide calendars and routing rules, and see <b>Simulate reply</b>.</p>
-<p><b>Requeue dead letters:</b> platform administrators, tenant administrators and notification operators. It needs a grant that covers a whole tenant, because queues are shared.</p>
+<p><b>Requeue dead letters:</b> platform administrators, for every tenant. Tenant administrators and notification operators, for their own tenant, with a grant that covers the whole tenant.</p>
+<p><b>Queues and workers on System monitoring:</b> platform-wide access only, because they serve every tenant. The other panels show each role its own part. See <x to="sec-mon-roles"/>.</p>
 
 <h2 id="app-trouble" appendix="1" data-ix="Troubleshooting|Error messages">Troubleshooting</h2>
 <h3 id="tr-notdelivered">A message wasn't delivered: what do I check?</h3>

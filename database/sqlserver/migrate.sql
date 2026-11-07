@@ -2067,3 +2067,24 @@ END;
 COMMIT;
 GO
 
+BEGIN TRANSACTION;
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261107024202_AddQueueMessageTenant'
+)
+BEGIN
+    ALTER TABLE [QueueMessages] ADD [TenantId] uniqueidentifier NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261107024202_AddQueueMessageTenant'
+)
+BEGIN
+    INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+    VALUES (N'20261107024202_AddQueueMessageTenant', N'10.0.14');
+END;
+
+COMMIT;
+GO
+

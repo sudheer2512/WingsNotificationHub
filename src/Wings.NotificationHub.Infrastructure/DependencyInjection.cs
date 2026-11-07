@@ -167,6 +167,8 @@ public sealed class DatabaseInitializer(NotificationHubDbContext db, IConfigurat
                     // EnsureCreated leaves an existing development database as it is, so columns added since need adding here.
                     var hasNote = await db.Database.SqlQueryRaw<int>("SELECT COUNT(*) AS Value FROM pragma_table_info('Suppressions') WHERE name = 'Note'").SingleAsync(ct);
                     if (hasNote == 0) await db.Database.ExecuteSqlRawAsync("ALTER TABLE Suppressions ADD COLUMN Note TEXT NULL;", ct);
+                    var hasQueueTenant = await db.Database.SqlQueryRaw<int>("SELECT COUNT(*) AS Value FROM pragma_table_info('QueueMessages') WHERE name = 'TenantId'").SingleAsync(ct);
+                    if (hasQueueTenant == 0) await db.Database.ExecuteSqlRawAsync("ALTER TABLE QueueMessages ADD COLUMN TenantId TEXT NULL;", ct);
                 }
             }
         }

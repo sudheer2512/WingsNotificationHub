@@ -578,6 +578,7 @@ CREATE TABLE [QueueMessages] (
     [Type] nvarchar(400) NOT NULL,
     [PayloadJson] nvarchar(max) NOT NULL,
     [MessageId] uniqueidentifier NOT NULL,
+    [TenantId] uniqueidentifier NULL,
     [CorrelationId] nvarchar(400) NULL,
     [EnqueuedAt] datetime2 NOT NULL,
     [VisibleAt] datetime2 NOT NULL,

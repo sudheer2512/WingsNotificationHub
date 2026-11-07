@@ -1,0 +1,29 @@
+﻿using System;
+using Microsoft.EntityFrameworkCore.Migrations;
+
+#nullable disable
+
+namespace Wings.NotificationHub.Infrastructure.Data.Migrations
+{
+    /// <inheritdoc />
+    public partial class AddQueueMessageTenant : Migration
+    {
+        /// <inheritdoc />
+        protected override void Up(MigrationBuilder migrationBuilder)
+        {
+            migrationBuilder.AddColumn<Guid>(
+                name: "TenantId",
+                table: "QueueMessages",
+                type: "uniqueidentifier",
+                nullable: true);
+        }
+
+        /// <inheritdoc />
+        protected override void Down(MigrationBuilder migrationBuilder)
+        {
+            migrationBuilder.DropColumn(
+                name: "TenantId",
+                table: "QueueMessages");
+        }
+    }
+}

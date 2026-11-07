@@ -34,27 +34,31 @@ import { confirmDialog } from '../shared/widgets';
             <a class="card" [attr.data-tone]="c.tone" [routerLink]="c.link ?? null" [queryParams]="c.query ?? null"><mat-icon>{{ c.icon }}</mat-icon><div><div class="v">{{ c.value }}</div><div class="l">{{ c.label }}</div></div></a>
           }
         </div>
-        <div class="grid-2" style="margin-top:12px">
-          <section class="panel">
-            <h2>Queues</h2>
-            <div class="table-wrap"><table class="data">
-              <thead><tr><th>Queue</th><th class="num">Ready</th><th class="num">In flight</th><th class="num">Dead-lettered</th></tr></thead>
-              <tbody>@for (q of queues(); track q.name) { <tr><td><code>{{ q.name }}</code></td><td class="num">{{ q.ready | num }}</td><td class="num">{{ q.inFlight | num }}</td>
-                <td class="num">@if (q.deadLettered) { <app-chip tone="bad" [label]="'' + q.deadLettered" /> } @else { 0 }</td></tr> }</tbody>
-            </table></div>
-            <div class="small muted" style="margin-top:6px">Outbox backlog (not yet published to queues): <b>{{ d.outboxBacklog | num }}</b></div>
-          </section>
-          <section class="panel">
-            <div class="panel-head"><h2>Workers</h2><span class="spacer"></span><mat-checkbox [(ngModel)]="showStopped">Show stopped instances</mat-checkbox></div>
-            <div class="table-wrap" style="max-height:340px"><table class="data">
-              <thead><tr><th>Worker</th><th>Instance</th><th>Status</th><th class="num">Processed</th><th class="num">Failed</th><th>Heartbeat</th></tr></thead>
-              <tbody>@for (w of workers(); track w.worker + w.instance) {
-                <tr><td><code>{{ w.worker }}</code></td><td class="small">{{ w.instance }}</td><td><app-chip [value]="w.status" [tip]="w.lastError ?? null" /></td>
-                  <td class="num">{{ w.processed | num }}</td><td class="num">{{ w.failed | num }}</td><td class="small nowrap" [title]="w.lastHeartbeatAt | dt">{{ w.lastHeartbeatAt | ago }}</td></tr>
-              } @empty { <tr><td colspan="6" class="muted">No worker heartbeats</td></tr> }</tbody>
-            </table></div>
-          </section>
-        </div>
+        @if (d.queues) {
+          <div class="grid-2" style="margin-top:12px">
+            <section class="panel">
+              <h2>Queues</h2>
+              <div class="table-wrap"><table class="data">
+                <thead><tr><th>Queue</th><th class="num">Ready</th><th class="num">In flight</th><th class="num">Dead-lettered</th></tr></thead>
+                <tbody>@for (q of queues(); track q.name) { <tr><td><code>{{ q.name }}</code></td><td class="num">{{ q.ready | num }}</td><td class="num">{{ q.inFlight | num }}</td>
+                  <td class="num">@if (q.deadLettered) { <app-chip tone="bad" [label]="'' + q.deadLettered" /> } @else { 0 }</td></tr> }</tbody>
+              </table></div>
+              <div class="small muted" style="margin-top:6px">Outbox backlog (not yet published to queues): <b>{{ d.outboxBacklog | num }}</b></div>
+            </section>
+            <section class="panel">
+              <div class="panel-head"><h2>Workers</h2><span class="spacer"></span><mat-checkbox [(ngModel)]="showStopped">Show stopped instances</mat-checkbox></div>
+              <div class="table-wrap" style="max-height:340px"><table class="data">
+                <thead><tr><th>Worker</th><th>Instance</th><th>Status</th><th class="num">Processed</th><th class="num">Failed</th><th>Heartbeat</th></tr></thead>
+                <tbody>@for (w of workers(); track w.worker + w.instance) {
+                  <tr><td><code>{{ w.worker }}</code></td><td class="small">{{ w.instance }}</td><td><app-chip [value]="w.status" [tip]="w.lastError ?? null" /></td>
+                    <td class="num">{{ w.processed | num }}</td><td class="num">{{ w.failed | num }}</td><td class="small nowrap" [title]="w.lastHeartbeatAt | dt">{{ w.lastHeartbeatAt | ago }}</td></tr>
+                } @empty { <tr><td colspan="6" class="muted">No worker heartbeats</td></tr> }</tbody>
+              </table></div>
+            </section>
+          </div>
+        } @else {
+          <div class="small muted" style="margin-top:12px">Queues and workers serve every tenant, so only platform administrators see them.@if (!d.deadLetters) { Dead letters need access to a whole tenant.}</div>
+        }
 
         <section class="panel" style="margin-top:12px">
           <div class="panel-head"><h2>Alerts</h2><span class="small muted">{{ d.alerts.length }} unacknowledged</span></div>
@@ -88,17 +92,19 @@ import { confirmDialog } from '../shared/widgets';
           </section>
         </div>
 
-        <section class="panel" style="margin-top:12px">
-          <div class="panel-head"><h2>Dead letters</h2><span class="small muted">messages that exhausted their retries in the queue</span></div>
-          <div class="table-wrap"><table class="data">
-            <thead><tr><th>Queue</th><th>Type</th><th class="num">Dequeues</th><th>Last error</th><th>Dead-lettered</th><th></th></tr></thead>
-            <tbody>@for (m of d.deadLetters; track m.id) {
-              <tr><td><code>{{ m.queue }}</code></td><td>{{ m.type }}</td><td class="num">{{ m.dequeueCount }}</td><td class="small error" style="max-width:420px">{{ m.lastError ?? '—' }}</td>
-                <td class="small nowrap">{{ m.deadLetteredAt | dt }}</td>
-                <td>@if (d.canRequeue) { <button mat-stroked-button (click)="requeue(m.id)"><mat-icon>replay</mat-icon>Requeue</button> }</td></tr>
-            } @empty { <tr><td colspan="6" class="muted">No dead letters</td></tr> }</tbody>
-          </table></div>
-        </section>
+        @if (d.deadLetters; as letters) {
+          <section class="panel" style="margin-top:12px">
+            <div class="panel-head"><h2>Dead letters</h2><span class="small muted">messages that exhausted their retries in the queue</span></div>
+            <div class="table-wrap"><table class="data">
+              <thead><tr><th>Queue</th><th>Type</th><th class="num">Dequeues</th><th>Last error</th><th>Dead-lettered</th><th></th></tr></thead>
+              <tbody>@for (m of letters; track m.id) {
+                <tr><td><code>{{ m.queue }}</code></td><td>{{ m.type }}</td><td class="num">{{ m.dequeueCount }}</td><td class="small error" style="max-width:420px">{{ m.lastError ?? '—' }}</td>
+                  <td class="small nowrap">{{ m.deadLetteredAt | dt }}</td>
+                  <td>@if (m.canRequeue) { <button mat-stroked-button (click)="requeue(m.id)"><mat-icon>replay</mat-icon>Requeue</button> }</td></tr>
+              } @empty { <tr><td colspan="6" class="muted">No dead letters</td></tr> }</tbody>
+            </table></div>
+          </section>
+        }
       }
     </div>`,
   styles: [`.alert-row { display: flex; gap: 8px; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--border); } .alert-row:last-child { border-bottom: 0; }`],
@@ -122,16 +128,16 @@ export class MonitoringPage implements OnInit {
     const d = this.data();
     if (!d) return [];
     const q = Object.values(d.queues ?? {});
-    const ready = q.reduce((s, x) => s + x.ready, 0), dead = q.reduce((s, x) => s + x.deadLettered, 0) + d.deadLetters.length;
-    const unresponsive = d.workers.filter(w => w.status === 'unresponsive').length;
+    const ready = q.reduce((s, x) => s + x.ready, 0), dead = q.reduce((s, x) => s + x.deadLettered, 0) + (d.deadLetters?.length ?? 0);
+    const unresponsive = (d.workers ?? []).filter(w => w.status === 'unresponsive').length;
     const open = d.circuits.filter(c => this.isOpen(c.openUntil)).length;
     const t = (bad: boolean, warn = false): Tone => bad ? 'bad' : warn ? 'warn' : 'good';
     return [
-      { label: 'Queued messages', value: fmtNum(ready), icon: 'queue', tone: t(false, ready > 1000) },
+      ...(d.queues ? [{ label: 'Queued messages', value: fmtNum(ready), icon: 'queue', tone: t(false, ready > 1000) }] : []),
       { label: 'Retry backlog', value: fmtNum(d.retries), icon: 'replay', tone: t(false, d.retries > 0), link: '/explorer', query: { status: 'RetryPending' } },
       { label: 'Awaiting operator', value: fmtNum(d.awaitingOperator), icon: 'support_agent', tone: t(d.awaitingOperator > 0), link: '/explorer', query: { awaitingOperator: 'true' } },
-      { label: 'Dead letters', value: fmtNum(dead), icon: 'report', tone: t(dead > 0) },
-      { label: 'Unresponsive workers', value: fmtNum(unresponsive), icon: 'memory', tone: t(unresponsive > 0) },
+      ...(d.deadLetters ? [{ label: 'Dead letters', value: fmtNum(dead), icon: 'report', tone: t(dead > 0) }] : []),
+      ...(d.workers ? [{ label: 'Unresponsive workers', value: fmtNum(unresponsive), icon: 'memory', tone: t(unresponsive > 0) }] : []),
       { label: 'Open circuits', value: fmtNum(open), icon: 'power_off', tone: t(open > 0) },
       { label: 'Open alerts', value: fmtNum(d.alerts.length), icon: 'notification_important', tone: t(d.alerts.some(a => a.severity === 'critical'), d.alerts.length > 0) },
     ] as { label: string; value: string; icon: string; tone: Tone; link?: string; query?: Record<string, string> }[];

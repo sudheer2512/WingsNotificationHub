@@ -29,7 +29,7 @@ dotnet test tests/Wings.NotificationHub.IntegrationTests
 
 | Scenario | Test(s) |
 |---|---|
-| Tenant isolation | `AccessAndChannelTests.Tenants_cannot_see_or_act_on_each_others_data` (+ `SecurityTests.Caller_scopes_…`) |
+| Tenant isolation | `AccessAndChannelTests.Tenants_cannot_see_or_act_on_each_others_data` (+ `SecurityTests.Caller_scopes_…`), `MonitoringTenantScopeTests` (monitoring and requeue) |
 | Application registration | `Wings_code_registers_a_sandbox_application_from_a_manifest`, `Emergency_suspension…` (admin app creation) |
 | Sending single notifications | `Single_notification_is_accepted_durably_then_delivered`, `Sdk_anonymous_overload_used_by_generated_code_works` |
 | Sending on multiple channels | `Multi_channel_request_tracks_each_channel_independently` |

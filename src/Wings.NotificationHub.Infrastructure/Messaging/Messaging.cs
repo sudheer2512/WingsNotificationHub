@@ -53,6 +53,7 @@ public sealed class MessageEnvelope
     public Guid MessageId { get; init; }
     public string Type { get; init; } = "";
     public string PayloadJson { get; init; } = "{}";
+    public Guid? TenantId { get; init; }
     public string? CorrelationId { get; init; }
     public int DeliveryCount { get; init; }
 
@@ -125,7 +126,7 @@ public sealed class DatabaseMessageBus(IServiceScopeFactory scopes) : IMessageBu
             db.QueueMessages.Add(new QueueMessage
             {
                 MessageId = m.MessageId, Queue = MessageTypes.QueueFor(m.Type), Type = m.Type,
-                PayloadJson = m.PayloadJson, CorrelationId = m.CorrelationId,
+                PayloadJson = m.PayloadJson, TenantId = m.TenantId, CorrelationId = m.CorrelationId,
             });
         await db.SaveChangesAsync(ct);
     }
@@ -312,7 +313,7 @@ public sealed class OutboxRelay(
         if (rows.Count == 0) return 0;
         try
         {
-            await bus.PublishAsync(rows.Select(r => new MessageEnvelope { MessageId = r.Id, Type = r.Type, PayloadJson = r.PayloadJson, CorrelationId = r.CorrelationId }).ToList(), ct);
+            await bus.PublishAsync(rows.Select(r => new MessageEnvelope { MessageId = r.Id, Type = r.Type, PayloadJson = r.PayloadJson, TenantId = r.TenantId, CorrelationId = r.CorrelationId }).ToList(), ct);
             var ids = rows.Select(r => r.Id).ToList();
             await db.OutboxMessages.Where(o => ids.Contains(o.Id)).ExecuteUpdateAsync(s => s.SetProperty(o => o.PublishedAt, DateTime.UtcNow), ct);
         }
