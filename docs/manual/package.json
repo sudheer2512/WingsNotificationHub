@@ -1,0 +1,13 @@
+{
+  "name": "wings-notification-hub-manual",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Builds the Wings Notification Hub user manual (PDF and self-contained HTML) from src/.",
+  "scripts": {
+    "build": "node build.mjs"
+  },
+  "devDependencies": {
+    "playwright-core": "^1.65.0"
+  }
+}

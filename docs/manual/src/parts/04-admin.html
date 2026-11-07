@@ -1,0 +1,351 @@
+<section class="p4">
+<div class="part-open"><div class="pk">Part 4</div><h1 id="part-4" part="4">Setup and administration</h1><p>Connect providers, set up customers, applications and people, watch costs and system health, and keep a record of everything.</p><ul class="part-list" data-part="4"></ul></div>
+
+<h2 id="ch-providers" data-ix="Providers|Provider configuration|Provider account">Providers</h2>
+<p class="lead">A provider account connects the hub to a service that carries messages. The hub chooses between accounts for each delivery and moves to another if one fails.</p>
+<div class="who"><b>Who can do this:</b> platform, tenant and company administrators add, edit, test and suspend. Only a platform administrator can create a <b>Shared (all tenants)</b> account. Application administrators, operators and auditors read only.</div>
+<fig src="providers.jpg" cap="Provider configuration: accounts on the left, the selected account on the right."/>
+<h3 id="sec-p-how" data-ix="Routing|Provider selection">How the hub chooses a provider</h3>
+<ol>
+  <li>It looks at company accounts, then tenant accounts, then shared accounts, if the tenant allows them.</li>
+  <li>It applies any routing rules, then drops accounts that are suspended, unhealthy, wrong for the destination country or over their monthly capacity.</li>
+  <li>It picks by <b>Priority</b> (lower is preferred), then by cost.</li>
+</ol>
+<p>Sandbox applications use only Mock accounts.</p>
+
+<h3 id="sec-p-add" data-ix="Add provider|Priority|Duplicate-risk policy|Fallback provider">Adding a provider account</h3>
+<ol class="steps">
+  <li>Select <b>Add provider</b>.</li>
+  <li>Enter a <b>Name</b>, and choose the <b>Provider type</b> and <b>Channel</b>. The type cannot be changed later.</li>
+  <li>Choose the <b>Scope</b>: <b>Tenant</b> or <b>Company</b>, and which one. Platform administrators can also choose <b>Shared (all tenants)</b>.</li>
+  <li>Fill in <b>Settings</b> and <b>Credentials</b> from the provider's own console. Secrets are encrypted and never shown again.</li>
+  <li>Under <b>Routing &amp; limits</b>, set the <b>Priority (lower is preferred)</b>, <b>Fallback provider</b>, <b>Duplicate-risk policy</b> and any limits.</li>
+  <li>Tick <b>Enabled</b>, then select <b>Save</b>.</li>
+</ol>
+<fig src="provider-form.jpg" w="84" cap="Adding an SMTP account. The password is hidden as you type."/>
+<div class="tw"><table>
+<thead><tr><th style="width:28%">Provider type</th><th style="width:12%">Channel</th><th>What you need</th></tr></thead>
+<tbody>
+<tr><td>SMTP (any mail server, Microsoft 365 SMTP AUTH, Gmail, Postfix…)</td><td>Email</td><td>Host, port, security, username, from address; password. No delivery receipts.</td></tr>
+<tr><td>Amazon SES (v2 API)</td><td>Email</td><td>Region, configuration set, from address; access keys or an instance role.</td></tr>
+<tr><td>Microsoft 365 (Graph sendMail, app-only)</td><td>Email</td><td>Tenant id, client id, sender mailbox; client secret.</td></tr>
+<tr><td>Twilio Programmable Messaging</td><td>SMS</td><td>Account SID, messaging service or from number; auth token.</td></tr>
+<tr><td>MSG91 (India, TRAI DLT)</td><td>SMS</td><td>Sender id, route, DLT entity id; auth key.</td></tr>
+<tr><td>Generic HTTP SMS gateway (configurable request)</td><td>SMS</td><td>URL, method, body template and response paths; API key.</td></tr>
+<tr><td>WhatsApp Business Platform — Meta Cloud API</td><td>WhatsApp</td><td>Phone number id, business account id, verify token; access token, app secret.</td></tr>
+<tr><td>WhatsApp via 360dialog (Cloud API compatible BSP)</td><td>WhatsApp</td><td>Base URL; API key.</td></tr>
+<tr><td>Firebase Cloud Messaging (HTTP v1)</td><td>Push, web push</td><td>Project id; service account JSON.</td></tr>
+<tr><td>Apple Push Notification service (token-based, HTTP/2)</td><td>Push</td><td>Team id, key id, bundle id, environment; private key.</td></tr>
+<tr><td>Standards Web Push (VAPID)</td><td>Web push</td><td>VAPID public key, subject; VAPID private key.</td></tr>
+</tbody></table></div>
+<p>The built-in <b>In-app inbox</b> and <b>Outbound webhooks</b> accounts need no setup. Each provider's details are in <code>docs/providers.md</code>.</p>
+<div class="tw"><table>
+<thead><tr><th style="width:36%">Duplicate-risk policy</th><th>After an unknown outcome</th></tr></thead>
+<tbody>
+<tr><td><b>Never resend after unknown outcome</b></td><td>Waits for an operator (<x to="sec-resolve"/>). Safest for most messages.</td></tr>
+<tr><td><b>Resend via same provider only</b></td><td>Resends through the same account, which can spot duplicates.</td></tr>
+<tr><td><b>Duplicates acceptable</b></td><td>Retries and falls back freely. Use this where a repeat does no harm.</td></tr>
+</tbody></table></div>
+
+<h3 id="sec-p-test" data-ix="Test provider|Connectivity test|Callback URL">Testing an account and setting its callback</h3>
+<ol class="steps">
+  <li>Select the account, then <b>Test</b>.</li>
+  <li>Optionally enter an address in <b>Send a test message to (optional)</b>. Leave it empty to check connectivity only.</li>
+  <li>Select <b>Run test</b>. The result appears as <b>Connectivity test:</b>, green for healthy and red otherwise.</li>
+  <li>Copy the <b>Callback URL</b> from the account details into the provider's console, so that delivery receipts, bounces and replies reach the hub.</li>
+</ol>
+<fig src="provider-test-result.jpg" cap="A connectivity test with a test message: the provider reports Healthy and Accepted."/>
+
+<h3 id="sec-p-sender" data-ix="Sender identity|Add sender|DLT entity id">Adding a sender identity</h3>
+<ol class="steps">
+  <li>Select the account and go to <b>Sender identities</b>.</li>
+  <li>Under <b>Add sender</b>, enter the address. The label fits the channel: <b>From address</b>, <b>Sender id / number</b> or <b>Address</b>.</li>
+  <li>Enter a <b>Display name</b>, and limit it with <b>Company (optional)</b> if needed.</li>
+  <li>Add the channel's details: <b>Reply-to</b> for email, <b>DLT entity id</b> for SMS in India, or <b>Phone number id</b> and <b>Business account id</b> for WhatsApp.</li>
+  <li>Tick <b>Default sender</b> if it applies, then select <b>Add sender</b>.</li>
+</ol>
+<p>Use <b>Suspend</b> and <b>Resume</b> on a sender's row to stop and restart it at once.</p>
+
+<h3 id="sec-p-routing" data-ix="Routing rules|Add routing rule">Pinning traffic with routing rules</h3>
+<p>Routing rules send a channel to a chosen account, optionally for one country or message class. Without a matching rule, enabled healthy providers are tried by priority.</p>
+<ol class="steps">
+  <li>Open the <b>Routing rules</b> tab.</li>
+  <li>Choose the <b>Channel</b> and <b>Provider</b>.</li>
+  <li>Choose the <b>Tenant</b> and <b>Company</b>. Platform administrators can choose <b>Platform-wide</b>.</li>
+  <li>Optionally enter a <b>Country prefix</b>, such as <code>+91</code>, and choose a <b>Message class</b>. Set the <b>Order</b>.</li>
+  <li>Select <b>Add rule</b>. Use the delete icon to remove a rule.</li>
+</ol>
+<fig src="providers-routing.jpg" cap="A routing rule for +971 numbers."/>
+
+<h3 id="sec-p-fallback" data-ix="Failover">Setting a fallback and suspending an account</h3>
+<p>Select <b>Edit</b> on an account and set <b>Fallback provider</b>: if this account has an outage, the hub moves to that account for the same channel.</p>
+<p>To stop an account at once, select <b>Suspend</b>, enter a <b>Reason</b> and confirm. Traffic moves to other providers. Select <b>Resume</b> to bring it back. Both are audited.</p>
+
+<h3 id="sec-p-cred" data-ix="Credential approval|Provider credentials">Changing credentials</h3>
+<p>Credentials of an existing account are protected by maker-checker.</p>
+<ol class="steps">
+  <li>Select the account, then <b>Edit</b>. Each stored secret shows <code>•••••••• (stored)</code>.</li>
+  <li>Enter a new value only for what is changing. Leave the rest empty.</li>
+  <li>Select <b>Save</b>. You see <code>Settings saved. Credential changes take effect after approval by another administrator.</code></li>
+  <li>The account shows <b>credential change pending</b>, and the stored credentials stay in use.</li>
+  <li>Another administrator opens <b>Approvals</b> and approves it. The new credentials then replace the old ones.</li>
+</ol>
+<fig src="providers-detail.jpg" cap="An account waiting for a credential change to be approved, with its settings and callback URL."/>
+
+<h3 id="sec-p-domain" data-ix="Sender domain guidance|SPF|DKIM|DMARC">Sender domain guidance</h3>
+<p>For email to reach the inbox, your sending domain needs SPF, DKIM and DMARC records.</p>
+<ol class="steps">
+  <li>Open the <b>Sender domain guidance</b> tab.</li>
+  <li>Enter the <b>Sender domain</b>, such as <code>mail.example.com</code>, and select <b>Show DNS records</b>.</li>
+  <li>Give the records to whoever manages your DNS. Replace the placeholders with your provider's values.</li>
+</ol>
+<fig src="providers-guidance.jpg" cap="The DNS records for a sender domain."/>
+<aside class="tip"><p>Use a separate subdomain for bulk and promotional mail, and start DMARC at <code>p=none</code> while you watch the reports.</p></aside>
+
+<h2 id="ch-tenancy" data-ix="Tenants|Companies|Branding|Retention|Quiet hours">Tenants and companies</h2>
+<p class="lead">A tenant is a customer on the hub, and companies are the businesses inside it.</p>
+<div class="who"><b>Who can do this:</b> only platform administrators create tenants. Tenant administrators add and edit companies and edit their tenant. Other roles see this screen read-only.</div>
+<fig src="tenancy.jpg" cap="Tenants &amp; companies."/>
+<h3 id="sec-ten-new" data-ix="New tenant|Marketing consent setting">Creating or editing a tenant</h3>
+<ol class="steps">
+  <li>Select <b>+ Tenant</b>, or the pencil icon on a tenant's row.</li>
+  <li>Enter the <b>Code</b>, which cannot be changed later, the <b>Name</b> and the <b>Default time zone</b>.</li>
+  <li>Set <b>Message body retention (days)</b>. After this many days message bodies are deleted and the record of delivery stays.</li>
+  <li>Set <b>Data retention (days)</b>, at least 30. After this many days delivery records are deleted.</li>
+  <li>Choose <b>Allow shared (platform) providers</b> and <b>Require marketing consent for promotional messages</b>.</li>
+  <li>Fill in <b>Branding</b> if you need it, then select <b>Save</b>.</li>
+</ol>
+<fig src="dialog-new-tenant.jpg" w="52" cap="The New tenant dialog."/>
+<h3 id="sec-co-new" data-ix="New company">Creating or editing a company</h3>
+<ol class="steps">
+  <li>Select <b>+ Company</b>, or the pencil icon on a company's row.</li>
+  <li>Choose the <b>Tenant</b>, and enter the <b>Code</b>, <b>Name</b>, <b>Country</b> and <b>Time zone (IANA)</b>, such as <code>Asia/Kolkata</code>.</li>
+  <li>Under <b>Quiet hours (recipient local time)</b>, tick <b>Enabled</b>, then set <b>Start</b>, <b>End</b>, <b>Applies to</b> and <b>Channels (empty = all except in-app)</b>. For example, 21:00 to 08:00 for promotional messages.</li>
+  <li>Fill in <b>Branding</b> to override the tenant's, then select <b>Save</b>.</li>
+</ol>
+<fig src="dialog-new-company.jpg" w="52" cap="A company with quiet hours for promotional messages."/>
+<p>Messages inside quiet hours wait until the window ends. A rule can set its own quiet hours (<x to="sec-r-adv"/>).</p>
+<div class="tw"><table>
+<thead><tr><th style="width:26%">Branding field</th><th>Use</th></tr></thead>
+<tbody>
+<tr><td><code>displayName</code></td><td>The name shown to recipients.</td></tr>
+<tr><td><code>logoUrl</code>, <code>primaryColor</code></td><td>Logo and accent colour.</td></tr>
+<tr><td><code>supportEmail</code>, <code>supportPhone</code>, <code>website</code></td><td>Contact details.</td></tr>
+<tr><td><code>emailFooterHtml</code></td><td>Footer added to emails.</td></tr>
+</tbody></table></div>
+
+<h2 id="ch-apps" data-ix="Applications|Client credentials|Credentials|Sandbox|Scopes">Applications and credentials</h2>
+<p class="lead">An application is a system that sends through the hub. It signs in with a client credential, and can send only for the companies you link it to.</p>
+<div class="who"><b>Who can do this:</b> platform and tenant administrators add and link applications. They and application administrators manage credentials.</div>
+<fig src="applications.jpg" cap="An application, its company links and its client credentials. The client id is blurred here."/>
+<h3 id="sec-a-new" data-ix="New application">Adding an application</h3>
+<ol class="steps">
+  <li>Select <b>+ Application</b>.</li>
+  <li>Choose the <b>Tenant</b>, and enter the <b>Code</b> and <b>Name</b>.</li>
+  <li>Choose <b>Allowed channels (empty = all)</b>, the <b>Default locale</b> and the <b>Rate limit (requests/min per credential)</b>.</li>
+  <li>Tick <b>Sandbox (messages are not sent to real providers)</b> while it is being tested.</li>
+  <li>Select <b>Save</b>, then switch on each company under <b>Company links</b>. An application can send only for companies it is enabled for.</li>
+</ol>
+<h3 id="sec-a-cred" data-ix="New credential|Revoke|Client secret">Creating and revoking a credential</h3>
+<fig src="applications-detail.jpg" w="84" cap="The New credential form."/>
+<ol class="steps">
+  <li>Select the application. Under <b>New credential</b>, enter a <b>Name</b>, such as <code>Production ERP</code>.</li>
+  <li>Choose the <b>Scopes</b>. Remove any it does not need.</li>
+  <li>Optionally choose <b>Restrict to companies</b> and <b>Expires (optional)</b>.</li>
+  <li>Tick <b>AI agent (stricter policy; may need human approval per notification type)</b> only for an AI agent.</li>
+  <li>Select <b>Create credential</b>.</li>
+  <li>Copy the <b>Client id</b> and <b>Client secret</b>, store them safely, and select <b>I have stored it</b>.</li>
+</ol>
+<fig src="dialog-secret-shown-once.jpg" w="56" cap="The secret is shown only once. Values are blurred here."/>
+<aside class="warn"><p>The secret cannot be shown again. If it is lost or exposed, select <b>Revoke</b> and create a new credential. Revoking stops issued tokens within seconds and cannot be undone.</p></aside>
+<div class="tw"><table>
+<thead><tr><th style="width:40%">Scope</th><th>Allows</th></tr></thead>
+<tbody>
+<tr><td><code>notifications.send</code>, <code>notifications.batch</code></td><td>Send, schedule, cancel and send in batches</td></tr>
+<tr><td><code>notifications.read</code></td><td>Status, history and the delivery list</td></tr>
+<tr><td><code>events.publish</code></td><td>Publish business events for rules</td></tr>
+<tr><td><code>templates.read</code>, <code>templates.write</code></td><td>Read or manage the application's templates</td></tr>
+<tr><td><code>contacts.write</code>, <code>devices.write</code>, <code>preferences.read</code>, <code>preferences.write</code></td><td>Recipients, devices, preferences and consent</td></tr>
+<tr><td><code>inapp.token</code></td><td>Sign end users into the in-app inbox</td></tr>
+<tr><td><code>usage.read</code>, <code>providers.health</code></td><td>Usage and reports; provider health</td></tr>
+<tr><td><code>webhooks.manage</code></td><td>Delivery and reply callbacks</td></tr>
+<tr><td><code>mcp</code></td><td>The AI agent connection</td></tr>
+</tbody></table></div>
+
+<h2 id="ch-users" class="flow" data-ix="Users and roles|Grant role|Add user|Reset password">Users and roles</h2>
+<p class="lead">People get into the console through a user account and one or more role grants. Each grant has a scope: grant the narrowest that works.</p>
+<div class="who"><b>Who can do this:</b> platform and tenant administrators. A tenant administrator cannot grant <b>Platform administrator</b>, or grant anything outside the tenant.</div>
+<fig src="users.jpg" cap="Users &amp; roles: each person's sign-in type, last login and role grants. Email addresses are blurred here."/>
+<h3 id="sec-u-add" data-ix="Create user">Adding a user</h3>
+<ol class="steps">
+  <li>Under <b>Add user</b>, enter the <b>Email</b> and <b>Display name</b>.</li>
+  <li>Enter a <b>Password (min 12; empty = external OIDC)</b>. Leave it empty for someone who signs in through your organisation's identity provider.</li>
+  <li>Choose the <b>Role</b>.</li>
+  <li>Set the scope: <b>Tenant</b>, <b>Company</b>, <b>Application</b> and <b>Channel</b>. Leave <b>All companies</b>, <b>All applications</b> and <b>All channels</b> for the widest.</li>
+  <li>Select <b>Create user</b>. Give the person their password by a safe route.</li>
+</ol>
+<h3 id="sec-u-grant" data-ix="Remove role">Granting or removing a role</h3>
+<ol class="steps">
+  <li>To grant, select <b>Grant</b> on the person's row. The form changes to <b>Grant a role to …</b>.</li>
+  <li>Choose the role and scope, then select <b>Grant role</b>. Select <b>Add a different user</b> to return to the blank form.</li>
+  <li>To remove, select the <b>×</b> on the role and confirm with <b>Remove</b>.</li>
+</ol>
+<fig src="users-grant.jpg" w="86" cap="Granting a second role to a user."/>
+<aside class="note"><p>The console has no button to disable a user: remove all of a person's roles and they see <code>No screens available</code> when they sign in.</p><p>It has no password reset either. Using <b>Add user</b> with the person's existing email and a new password replaces the password. It also adds the role in the form, so remove that grant afterwards if it is not wanted.</p></aside>
+
+<h2 id="ch-webhooks" data-ix="Webhooks|Signing secret|Signature">Webhooks</h2>
+<p class="lead">Webhooks tell your applications what happened, as it happens: a status changed, a notification finished, a customer replied. Each call is signed so the application can trust it.</p>
+<div class="who"><b>Who can do this:</b> platform, tenant, company and application administrators.</div>
+<fig src="webhooks.jpg" cap="Webhooks: registered endpoints and the form to add one."/>
+<h3 id="sec-w-reg" data-ix="Register webhook">Registering a webhook</h3>
+<ol class="steps">
+  <li>Under <b>Register webhook</b>, choose the <b>Application</b> and, optionally, <b>Company (optional)</b>.</li>
+  <li>Enter a <b>Name</b> and the <b>HTTPS URL</b> of the application's endpoint.</li>
+  <li>Choose the <b>Event types</b>, or <b>All events (*)</b>.</li>
+  <li>Select <b>Register</b>.</li>
+  <li>Copy the <b>Signing secret</b> and give it to the application's developers. It is shown only once.</li>
+</ol>
+<div class="tw"><table>
+<thead><tr><th style="width:40%">Event type</th><th>Sent when</th></tr></thead>
+<tbody>
+<tr><td><code>delivery.status_changed</code></td><td>A delivery's status changes</td></tr>
+<tr><td><code>notification.completed</code></td><td>All of a notification's deliveries have finished</td></tr>
+<tr><td><code>inbound.message_received</code></td><td>A customer replies</td></tr>
+<tr><td><code>push.interaction</code></td><td>Someone interacts with a push message</td></tr>
+<tr><td><code>inapp.action</code></td><td>Someone acts on an in-app message</td></tr>
+<tr><td><code>notification.webhook</code></td><td>A message is sent on the Webhook channel</td></tr>
+</tbody></table></div>
+<aside class="note"><p>URLs must be https and cannot point to a private network, except on a development system set up to allow it.</p></aside>
+<h3 id="sec-w-manage" data-ix="Webhook attempts|Enable webhook">Testing and watching a webhook</h3>
+<ul>
+  <li><b>Test</b> sends a test event. You see <code>Test event … queued</code>, and the attempts list opens.</li>
+  <li><b>Attempts</b> shows each call: time, event, <st>Delivered</st> or <st>Failed</st>, HTTP code, duration and error.</li>
+  <li>The delete icon stops events to that address.</li>
+</ul>
+<fig src="webhooks-attempts.jpg" cap="Attempts for a disabled webhook. HTTP 429 means the receiver refused the calls."/>
+<p>Failed calls are retried, up to 8 times with growing gaps. After 100 failures in a row the hub disables the webhook and raises an alert. Fix the receiver, then select <b>Enable</b>.</p>
+
+<h2 id="ch-usage" data-ix="Usage and billing|Quotas|Credits|Rates|Margin">Usage and billing</h2>
+<p class="lead">See what was sent and what it cost, and set limits.</p>
+<div class="who"><b>Who can do this:</b> everyone with this screen can read it: administrators, campaign managers and auditors. Tenant and platform administrators set quotas. Only platform administrators add credits or change rates.</div>
+<fig src="usage.jpg" cap="The Usage tab, grouped by channel."/>
+<h3 id="sec-us-read">Reading usage</h3>
+<p>Use the filters, then <b>Group by</b>: <b>Channel</b>, <b>Application</b>, <b>Company</b>, <b>Provider</b> or <b>Month</b>.</p>
+<div class="tw"><table>
+<thead><tr><th style="width:26%">Figure</th><th>What it means</th></tr></thead>
+<tbody>
+<tr><th>Messages (units)</th><td>Messages sent. A long SMS counts as several units.</td></tr>
+<tr><th>Estimated cost</th><td>What the hub expects the providers to charge, from the cost rates.</td></tr>
+<tr><th>Provider-reported cost</th><td>What providers said they charged, where they report it. Otherwise —.</td></tr>
+<tr><th>Billed</th><td>What the customer is charged, from the billing rates.</td></tr>
+<tr><th>Margin</th><td>Billed minus cost. Negative figures are shown in red.</td></tr>
+</tbody></table></div>
+<h3 id="sec-us-quota" data-ix="Set quota|Alert threshold|Quota exceeded">Setting a quota</h3>
+<ol class="steps">
+  <li>Open the <b>Quotas</b> tab.</li>
+  <li>Under <b>Set quota</b>, choose the <b>Tenant</b>, and optionally the <b>Company</b>, <b>Application</b> and <b>Channel</b>.</li>
+  <li>Enter the <b>Monthly limit</b> and <b>Alert threshold %</b>.</li>
+  <li>Select <b>Save quota</b>. Saving the same scope again updates it. Use the delete icon to remove one.</li>
+</ol>
+<fig src="usage-quotas.jpg" cap="Quotas, with the use so far this month."/>
+<aside class="warn"><p>A quota is a hard stop. Once it is reached, the hub refuses new sends with <code>quota_exceeded</code>, for example <code>Monthly email quota for this company is exhausted (9/1).</code> The application sees this error, and nothing appears in the explorer.</p></aside>
+<h3 id="sec-us-credit" data-ix="Top up|Low balance">Prepaid credits</h3>
+<p>Without a credit account, sending is not limited by balance. With one, each account shows its <b>Balance</b>, <b>reserved</b> and <b>available</b> amounts, and a <st tone="bad" icon="warn">Low balance</st> chip below its threshold. Open <b>Recent transactions</b> to see each movement.</p>
+<ol class="steps">
+  <li>On the <b>Credits</b> tab, under <b>Top up</b>, choose the <b>Tenant</b> and <b>Company</b>, or <b>Tenant-wide</b>.</li>
+  <li>Enter the <b>Amount</b>, an optional <b>Low-balance threshold</b> and a <b>Note</b>.</li>
+  <li>Select <b>Add credits</b>. You see the new balance.</li>
+</ol>
+<fig src="usage-credits.jpg" cap="A prepaid credit account with its recent transactions."/>
+<h3 id="sec-us-rates" data-ix="Billing rate|Cost rate">Setting rates</h3>
+<p>The <b>Rates</b> tab has two tables.</p>
+<ul>
+  <li><b>Customer billing rates</b> set what customers pay. Choose the <b>Tenant</b> or <b>Default (all tenants)</b> and the <b>Channel</b>, then enter a <b>Unit price (optional)</b> or leave it empty to use cost plus <b>Margin %</b>. Select <b>Save billing rate</b>.</li>
+  <li><b>Provider cost rates</b> set what providers charge. Choose the <b>Channel</b> and <b>Provider</b>, optionally a <b>Country prefix</b> and <b>Message class</b>, and enter the <b>Unit cost</b>. Select <b>Add cost rate</b>. Each rate takes effect from when it is added.</li>
+</ul>
+<fig src="usage-rates.jpg" cap="Billing rates and cost rates."/>
+
+<h2 id="ch-reports" data-ix="Reports">Reports</h2>
+<p class="lead">Fifteen ready-made reports, each available as a table and a download.</p>
+<div class="who"><b>Who can do this:</b> the same people who can read <b>Usage &amp; billing</b>.</div>
+<fig src="reports.jpg" cap="The Reports screen, showing Provider performance."/>
+<ol class="steps">
+  <li>Open <b>Reports</b> and select a report on the left.</li>
+  <li>Narrow it with <b>Company</b>, <b>Application</b>, <b>Channel</b>, <b>Provider</b>, <b>From</b> and <b>To</b>, and <b>Tenant</b> if you see more than one.</li>
+  <li>Select a column heading to sort.</li>
+  <li>Select <b>CSV</b> or <b>Excel</b> to download what the filters select.</li>
+</ol>
+<div class="tw"><table>
+<thead><tr><th style="width:35%">Report</th><th>Columns</th></tr></thead>
+<tbody>
+<tr><td>Channel-wise notification volumes</td><td>Channel, Deliveries, Units</td></tr>
+<tr><td>Application-wise communication consumption</td><td>Application, Channel, Deliveries, Cost</td></tr>
+<tr><td>Company-wise communication consumption</td><td>Company, Channel, Deliveries, Cost</td></tr>
+<tr><td>Provider performance</td><td>Provider, Attempts, Accepted, AcceptanceRate%, Transient, Permanent, Ambiguous, AvgResponseMs</td></tr>
+<tr><td>Delivery success rates</td><td>Channel, Total, Delivered, AcceptedNotConfirmed, Failed, Suppressed, Read, DeliveryRate%, SuccessRate%</td></tr>
+<tr><td>Failure reasons</td><td>Channel, Status, Reason, Count</td></tr>
+<tr><td>Average delivery latency</td><td>Channel, Provider, Messages, AvgAcceptanceSec, AvgDeliverySec</td></tr>
+<tr><td>Cost by channel and provider</td><td>Channel, Provider, Messages, Units, EstimatedCost, ProviderReportedCost, Billed</td></tr>
+<tr><td>Cost by company and application</td><td>Company, Application, Messages, EstimatedCost, Billed</td></tr>
+<tr><td>Campaign performance</td><td>Campaign, Status, Recipients, Deliveries, Delivered, Read, Failed, Suppressed, Cost</td></tr>
+<tr><td>Template usage</td><td>Template, Version, Channel, Locale, Uses</td></tr>
+<tr><td>Retry statistics</td><td>Channel, Attempts, Deliveries, EventuallySucceeded</td></tr>
+<tr><td>Consent and opt-out statistics</td><td>Type, Channel, Detail, Count</td></tr>
+<tr><td>Queue backlog trends</td><td>Hour, Created, StillPending, AvgQueueWaitSec</td></tr>
+<tr><td>Monthly usage comparison</td><td>Month, Channel, Messages, Billed</td></tr>
+</tbody></table></div>
+
+<h2 id="ch-monitoring" class="flow" data-ix="System monitoring|Alerts|Workers|Circuit breaker">System monitoring</h2>
+<p class="lead">This screen shows whether the hub itself is healthy. It refreshes every 15 seconds.</p>
+<div class="who"><b>Who can do this:</b> administrators, notification operators and auditors can read it and acknowledge alerts. <b>Requeue</b> is for platform administrators and notification operators.</div>
+<fig src="monitoring.jpg" cap="System monitoring: summary cards, queues, workers and open alerts."/>
+<div class="tw"><table>
+<thead><tr><th style="width:24%">Panel or card</th><th>What it tells you</th><th style="width:32%">What to do</th></tr></thead>
+<tbody>
+<tr><th>Queued messages, Queues</th><td>Work waiting. <b>Outbox backlog</b> counts work not yet handed to a queue.</td><td>A number that keeps growing means workers are behind.</td></tr>
+<tr><th>Retry backlog</th><td>Deliveries waiting to retry.</td><td>Open it to find a common cause, usually one provider.</td></tr>
+<tr><th>Awaiting operator</th><td>Unknown outcomes.</td><td>See <x to="sec-resolve"/>.</td></tr>
+<tr><th>Dead letters</th><td>Items that used up their retries in a queue.</td><td>See below.</td></tr>
+<tr><th>Unresponsive workers, Workers</th><td>The background processes, with work done, failures and the last heartbeat.</td><td>Any <st>Stopped</st> or unresponsive worker that should be running is one for your support team.</td></tr>
+<tr><th>Open circuits, Circuit breakers</th><td>A provider failing repeatedly is rested for a while. <st tone="good" icon="power">Closed</st> is normal. <st tone="bad" icon="power_off">Open until …</st> means traffic is going elsewhere.</td><td>Check the provider's status page. It closes by itself once the provider recovers.</td></tr>
+<tr><th>Alerts</th><td>Things the hub wants a person to see, by severity.</td><td>Read it, deal with it, select <b>Acknowledge</b>.</td></tr>
+<tr><th>Provider errors (24 h)</th><td>Error codes per provider.</td><td>Look for a sudden new code.</td></tr>
+</tbody></table></div>
+<h3 id="sec-dead" data-ix="Dead letters|Requeue">Requeuing a dead letter</h3>
+<ol class="steps">
+  <li>Find the item under <b>Dead letters</b>. Read <b>Last error</b> and fix the cause if you can.</li>
+  <li>Select <b>Requeue</b>, then <b>Requeue</b> to confirm. You see <code>Requeued</code>.</li>
+</ol>
+<p>If it fails again, it returns to this list. Dead letters are kept for 30 days.</p>
+
+<h2 id="ch-suspension" data-ix="Emergency suspension|Suspend|Resume">Emergency suspension</h2>
+<p class="lead">If something goes wrong, such as a compromised sender or a campaign sent in error, stop it here. Pending messages are held, not lost, and continue when you resume.</p>
+<div class="who"><b>Who can do this:</b> platform, tenant and company administrators. Only a platform administrator can suspend a tenant.</div>
+<fig src="suspension-active.jpg" cap="Emergency suspension, with one company suspended and listed under Currently suspended."/>
+<h3 id="sec-su-do">Suspending and resuming</h3>
+<ol class="steps">
+  <li>Open <b>Emergency suspension</b>. It lists <b>Tenants</b>, <b>Companies</b>, <b>Applications</b> and <b>Active campaigns</b>.</li>
+  <li>Select <b>Suspend</b> on the row.</li>
+  <li>Enter a <b>Reason (audited)</b>. For a tenant, also tick <b>I understand this stops all messaging for every company in the tenant.</b></li>
+  <li>Select <b>Suspend now</b>. It appears under <b>Currently suspended</b>.</li>
+  <li>When it is safe, select <b>Resume</b>, then <b>Resume</b> to confirm. Held messages continue.</li>
+</ol>
+<div class="fig-row">
+  <fig src="dialog-suspend.jpg" cap="Suspending needs a reason."/>
+  <fig src="dialog-suspend-tenant.jpg" cap="Suspending a tenant needs a second confirmation."/>
+</div>
+<p>While a company is suspended, its applications are refused with <code>The company is suspended.</code> Every suspension raises a critical alert and is audited. Provider accounts and sender identities are suspended on the <b>Providers</b> screen (<x to="sec-p-fallback"/>).</p>
+
+<h2 id="ch-audit" class="flow" data-ix="Audit log">Audit log</h2>
+<p class="lead">Every change made in the console or through the API is recorded: who, what, when and where.</p>
+<div class="who"><b>Who can do this:</b> auditors and platform, tenant and company administrators.</div>
+<fig src="audit.jpg" cap="The Audit log, filtered to template actions, with one entry open."/>
+<ol class="steps">
+  <li>Open <b>Audit log</b>.</li>
+  <li>Filter with <b>Action starts with</b>, such as <code>template.</code>, <b>Entity type</b>, such as <code>NotificationTemplate</code> or <code>ProviderAccount</code>, <b>Entity id</b> and <b>From</b>, plus <b>Tenant</b> if you see more than one.</li>
+  <li>Select <b>Search</b>.</li>
+  <li>Select a row to see the full entry.</li>
+</ol>
+<p>Each row shows the <b>Time</b>, <b>Actor</b>, <b>Action</b>, <b>Entity</b>, <b>Summary</b>, <b>Scope</b> and <b>Correlation</b>. Action names read like <code>template.draft_saved</code>, <code>credential.created</code>, <code>company.suspended</code> and <code>credits.top_up</code>. Addresses are masked in summaries.</p>
+<aside class="tip"><p>If someone quotes a correlation id from an error banner, it links their error to the actions around it.</p></aside>
+</section>

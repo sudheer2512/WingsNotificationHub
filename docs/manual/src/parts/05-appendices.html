@@ -1,0 +1,205 @@
+<section class="px">
+<div class="part-open"><div class="pk">Reference</div><h1 id="appendices">Appendices</h1><p>Statuses, template syntax, role permissions, troubleshooting, and pointers for developers and installers.</p><ul class="part-list" data-part="5"></ul></div>
+
+<h2 id="app-status" appendix="1" data-ix="Status reference">Delivery status reference</h2>
+<p class="lead">A delivery's status always moves forward. Not every channel reaches every status.</p>
+<div class="tw"><table>
+<thead><tr><th style="width:21%">Status</th><th>What it means</th><th style="width:30%">What to do</th></tr></thead>
+<tbody>
+<tr><td><st>Draft</st></td><td>Not yet released for sending.</td><td>Nothing.</td></tr>
+<tr><td><st>Scheduled</st></td><td>Waiting for its send time, or for quiet hours to end.</td><td>Nothing.</td></tr>
+<tr><td><st>Queued</st></td><td>Waiting for a worker.</td><td>Nothing, unless many stay here.</td></tr>
+<tr><td><st>Processing</st></td><td>A worker is handling it.</td><td>Nothing.</td></tr>
+<tr><td><st>Submitted</st></td><td>Handed to the provider.</td><td>Nothing.</td></tr>
+<tr><td><st>Provider accepted</st></td><td>The provider took it.</td><td>Nothing. Some providers report no further.</td></tr>
+<tr><td><st>Sent</st></td><td>The provider says it left for the recipient.</td><td>Nothing.</td></tr>
+<tr><td><st>Delivered</st></td><td>Confirmed as delivered.</td><td>Nothing.</td></tr>
+<tr><td><st>Read</st></td><td>The recipient opened it, on channels that report this.</td><td>Nothing.</td></tr>
+<tr><td><st>Retry pending</st></td><td>A try failed, and another is scheduled.</td><td>Wait, or select <b>Retry</b>.</td></tr>
+<tr><td><st>Failed</st></td><td>It could not be delivered.</td><td>Read the failure, fix it, select <b>Retry</b>.</td></tr>
+<tr><td><st>Expired</st></td><td>Its time limit passed before it could be sent.</td><td><b>Retry</b> if still useful.</td></tr>
+<tr><td><st>Cancelled</st></td><td>Stopped before sending, for example with a campaign.</td><td>Nothing.</td></tr>
+<tr><td><st>Suppressed</st></td><td>Blocked by consent, preference or the suppression list.</td><td>See <x to="sec-consent-rules"/>.</td></tr>
+<tr><td><st>Unknown</st></td><td>Nobody can tell whether the provider took it.</td><td>Select <b>Resolve</b>. See <x to="sec-resolve"/>.</td></tr>
+</tbody></table></div>
+<h4 id="status-other">Other statuses you will meet</h4>
+<div class="tw"><table>
+<thead><tr><th style="width:20%">On</th><th>Statuses</th></tr></thead>
+<tbody>
+<tr><th>Templates</th><td><st>Draft</st> <st>In review</st> <st>Approved</st> <st>Active</st> <st>Retired</st> <st>Rejected</st></td></tr>
+<tr><th>Campaigns</th><td><st>Draft</st> <st>Pending approval</st> <st>Approved</st> <st>Scheduled</st> <st>Running</st> <st>Paused</st> <st>Completed</st> <st>Cancelled</st></td></tr>
+<tr><th>Campaign recipients</th><td><st>Pending</st> <st>Queued</st> <st>Skipped</st> <st>Failed</st></td></tr>
+<tr><th>Providers</th><td><st>Healthy</st> <st>Degraded</st> <st>Unhealthy</st> <st>Circuit open</st> <st tone="off">Unknown</st> <st>Suspended</st> <st>Disabled</st></td></tr>
+<tr><th>Approvals</th><td><st>Pending</st> <st>Approved</st> <st>Rejected</st> <st>Cancelled</st></td></tr>
+<tr><th>Inbound replies</th><td><st>Pending</st> <st>Routed</st> <st>No subscriber</st> <st>Failed</st></td></tr>
+</tbody></table></div>
+
+<h2 id="app-syntax" appendix="1" data-ix="Template syntax|Filters|Conditional blocks">Template syntax reference</h2>
+<p class="lead">Templates use a small, safe language. Output is always escaped, and no code can run.</p>
+<h3 id="syn-vars">Variables</h3>
+<div class="tw"><table>
+<thead><tr><th style="width:38%">Write</th><th>Meaning</th></tr></thead>
+<tbody>
+<tr><td><code>{{CustomerName}}</code></td><td>A variable. Names ignore case.</td></tr>
+<tr><td><code>{{Customer.Name}}</code></td><td>A value inside another value.</td></tr>
+<tr><td><code>{{CompanyName}}</code>, <code>{{TenantName}}</code>, <code>{{RecipientName}}</code>, <code>{{UnsubscribeUrl}}</code>, <code>{{CurrentDate}}</code></td><td>Built-in: the hub supplies these when sending.</td></tr>
+</tbody></table></div>
+<h3 id="syn-filters">Filters</h3>
+<p>Filters follow a <code>|</code>, can be chained, and take one argument after a <code>:</code>.</p>
+<div class="tw"><table>
+<thead><tr><th style="width:22%">Filter</th><th style="width:40%">Example</th><th>Result</th></tr></thead>
+<tbody>
+<tr><td><code>upper</code></td><td><code>{{CustomerName | upper}}</code></td><td>UPPER CASE</td></tr>
+<tr><td><code>lower</code></td><td><code>{{Email | lower}}</code></td><td>lower case</td></tr>
+<tr><td><code>title</code></td><td><code>{{CustomerName | title}}</code></td><td>Title Case</td></tr>
+<tr><td><code>trim</code></td><td><code>{{Comment | trim}}</code></td><td>Removes surrounding spaces</td></tr>
+<tr><td><code>default:text</code></td><td><code>{{Nickname | default:Customer}}</code></td><td>Fallback when empty</td></tr>
+<tr><td><code>truncate:n</code></td><td><code>{{Comment | truncate:80}}</code></td><td>Cuts to n characters (…)</td></tr>
+<tr><td><code>number:decimals</code></td><td><code>{{Quantity | number:2}}</code></td><td>Grouped number</td></tr>
+<tr><td><code>currency:code</code></td><td><code>{{InvoiceAmount | currency:INR}}</code></td><td>Currency amount, such as ₹1,84,500.00</td></tr>
+<tr><td><code>date:format</code></td><td><code>{{DueDate | date:dd-MMM-yyyy}}</code></td><td>Date, such as 12-Nov-2026</td></tr>
+<tr><td><code>url</code></td><td><code>{{PaymentLink | url}}</code></td><td>Safe http(s) link only</td></tr>
+</tbody></table></div>
+<h3 id="syn-blocks">Blocks</h3>
+<div class="tw"><table>
+<thead><tr><th style="width:62%">Write</th><th>Meaning</th></tr></thead>
+<tbody>
+<tr><td><code>{{#if Discount}}Save {{Discount}}{{else}}No offer{{/if}}</code></td><td>Conditional section</td></tr>
+<tr><td><code>{{#unless Paid}}Payment pending{{/unless}}</code></td><td>Inverse conditional</td></tr>
+<tr><td><code>{{#each Items}}{{@index}}. {{this.Name}}{{/each}}</code></td><td>Repeat for each list item</td></tr>
+<tr><td><code>{{! internal note }}</code></td><td>Comment, not rendered</td></tr>
+</tbody></table></div>
+<aside class="warn"><p>Every <code>{{#if}}</code>, <code>{{#unless}}</code> and <code>{{#each}}</code> needs its closing tag. While a block is unclosed, <b>Live preview</b> shows <code>An unexpected error occurred.</code> Close the block and the preview recovers.</p></aside>
+
+<h2 id="app-roles" appendix="1" data-ix="Role matrix|Permissions">Role and permission matrix</h2>
+<p class="lead">What each role can do within its scope. Platform and tenant administrators hold every permission; the differences for them are noted below the table.</p>
+<div class="tw"><table class="matrix">
+<thead><tr><th style="width:30%">Permission</th><th>Platform</th><th>Tenant</th><th>Company</th><th>Application</th><th>Designer</th><th>Approver</th><th>Campaign</th><th>Operator</th><th>Auditor</th></tr></thead>
+<tbody>
+<tr><td>View dashboard</td><td><y/></td><td><y/></td><td><y/></td><td><y/></td><td><y/></td><td><y/></td><td><y/></td><td><y/></td><td><y/></td></tr>
+<tr><td>View notifications (explorer)</td><td><y/></td><td><y/></td><td><y/></td><td><y/></td><td><n/></td><td><n/></td><td><y/></td><td><y/></td><td><y/></td></tr>
+<tr><td>Read message content and full addresses</td><td><y/></td><td><y/></td><td><y/></td><td><y/></td><td><n/></td><td><n/></td><td><n/></td><td><y/></td><td><n/></td></tr>
+<tr><td>Retry and resolve deliveries</td><td><y/></td><td><y/></td><td><y/></td><td><y/></td><td><n/></td><td><n/></td><td><n/></td><td><y/></td><td><n/></td></tr>
+<tr><td>Send notifications, real tests, schedules</td><td><y/></td><td><y/></td><td><y/></td><td><y/></td><td><n/></td><td><n/></td><td><n/></td><td><n/></td><td><n/></td></tr>
+<tr><td>View templates</td><td><y/></td><td><y/></td><td><y/></td><td><y/></td><td><y/></td><td><y/></td><td><y/></td><td><n/></td><td><y/></td></tr>
+<tr><td>Edit templates, notification types</td><td><y/></td><td><y/></td><td><y/></td><td><y/></td><td><y/></td><td><n/></td><td><n/></td><td><n/></td><td><n/></td></tr>
+<tr><td>Approve, activate, retire templates</td><td><y/></td><td><y/></td><td><y/></td><td><n/></td><td><n/></td><td><y/></td><td><n/></td><td><n/></td><td><n/></td></tr>
+<tr><td>View rules</td><td><y/></td><td><y/></td><td><y/></td><td><y/></td><td><y/></td><td><n/></td><td><n/></td><td><n/></td><td><y/></td></tr>
+<tr><td>Edit rules</td><td><y/></td><td><y/></td><td><y/></td><td><y/></td><td><n/></td><td><n/></td><td><n/></td><td><n/></td><td><n/></td></tr>
+<tr><td>View campaigns</td><td><y/></td><td><y/></td><td><y/></td><td><y/></td><td><n/></td><td><n/></td><td><y/></td><td><y/></td><td><y/></td></tr>
+<tr><td>Manage campaigns</td><td><y/></td><td><y/></td><td><y/></td><td><n/></td><td><n/></td><td><n/></td><td><y/></td><td><n/></td><td><n/></td></tr>
+<tr><td>Approve campaigns</td><td><y/></td><td><y/></td><td><y/></td><td><n/></td><td><n/></td><td><n/></td><td><n/></td><td><n/></td><td><n/></td></tr>
+<tr><td>View Inbox</td><td><y/></td><td><y/></td><td><y/></td><td><y/></td><td><n/></td><td><n/></td><td><n/></td><td><y/></td><td><y/></td></tr>
+<tr><td>Reply in Inbox</td><td><y/></td><td><y/></td><td><y/></td><td><n/></td><td><n/></td><td><n/></td><td><n/></td><td><y/></td><td><n/></td></tr>
+<tr><td>View recipients</td><td><y/></td><td><y/></td><td><y/></td><td><y/></td><td><n/></td><td><n/></td><td><y/></td><td><n/></td><td><y/></td></tr>
+<tr><td>Manage recipients</td><td><y/></td><td><y/></td><td><y/></td><td><y/></td><td><n/></td><td><n/></td><td><y/></td><td><n/></td><td><n/></td></tr>
+<tr><td>View providers</td><td><y/></td><td><y/></td><td><y/></td><td><y/></td><td><n/></td><td><n/></td><td><n/></td><td><y/></td><td><y/></td></tr>
+<tr><td>Manage providers</td><td><y/></td><td><y/></td><td><y/></td><td><n/></td><td><n/></td><td><n/></td><td><n/></td><td><n/></td><td><n/></td></tr>
+<tr><td>Approve provider credentials</td><td><y/></td><td><y/></td><td><y/></td><td><n/></td><td><n/></td><td><n/></td><td><n/></td><td><n/></td><td><n/></td></tr>
+<tr><td>View usage and reports</td><td><y/></td><td><y/></td><td><y/></td><td><y/></td><td><n/></td><td><n/></td><td><y/></td><td><n/></td><td><y/></td></tr>
+<tr><td>Set quotas</td><td><y/></td><td><y/></td><td><n/></td><td><n/></td><td><n/></td><td><n/></td><td><n/></td><td><n/></td><td><n/></td></tr>
+<tr><td>View system monitoring</td><td><y/></td><td><y/></td><td><y/></td><td><y/></td><td><n/></td><td><n/></td><td><n/></td><td><y/></td><td><y/></td></tr>
+<tr><td>View audit log</td><td><y/></td><td><y/></td><td><y/></td><td><n/></td><td><n/></td><td><n/></td><td><n/></td><td><n/></td><td><y/></td></tr>
+<tr><td>View tenants, companies, applications</td><td><y/></td><td><y/></td><td><y/></td><td><y/></td><td><y/></td><td><y/></td><td><y/></td><td><y/></td><td><y/></td></tr>
+<tr><td>Manage tenancy, applications, calendars</td><td><y/></td><td><y/></td><td><n/></td><td><n/></td><td><n/></td><td><n/></td><td><n/></td><td><n/></td><td><n/></td></tr>
+<tr><td>Manage client credentials</td><td><y/></td><td><y/></td><td><n/></td><td><y/></td><td><n/></td><td><n/></td><td><n/></td><td><n/></td><td><n/></td></tr>
+<tr><td>Manage webhooks</td><td><y/></td><td><y/></td><td><y/></td><td><y/></td><td><n/></td><td><n/></td><td><n/></td><td><n/></td><td><n/></td></tr>
+<tr><td>Emergency suspension</td><td><y/></td><td><y/></td><td><y/></td><td><n/></td><td><n/></td><td><n/></td><td><n/></td><td><n/></td><td><n/></td></tr>
+<tr><td>Manage users and roles</td><td><y/></td><td><y/></td><td><n/></td><td><n/></td><td><n/></td><td><n/></td><td><n/></td><td><n/></td><td><n/></td></tr>
+</tbody></table></div>
+<p><b>Platform administrator only:</b> create tenants, create shared providers, top up credits, change billing and cost rates, suspend tenants, grant the Platform administrator role, create platform-wide calendars and routing rules, and see <b>Simulate reply</b>.</p>
+<p><b>Requeue dead letters:</b> platform administrators and notification operators. Tenant administrators do not have this button.</p>
+
+<h2 id="app-trouble" appendix="1" data-ix="Troubleshooting|Error messages">Troubleshooting</h2>
+<h3 id="tr-notdelivered">A message wasn't delivered: what do I check?</h3>
+<ol class="steps">
+  <li><b>Find it.</b> In the <b>Notification explorer</b>, enter the full address in <b>Recipient (exact email or phone)</b>. Clear any date filters.</li>
+  <li><b>Nothing found?</b> The request never reached the hub, or the application got an error. Ask the application's owner. Check <b>Emergency suspension</b> and <b>Quotas</b>, which stop sends before they are recorded.</li>
+  <li><st>Suppressed</st>? Read the reason. See <x to="sec-consent-rules"/>. A retry will not help until consent or the suppression changes.</li>
+  <li><st>Failed</st>? Read <b>Failure</b> and the <b>Attempts</b> tab. A bad address must be corrected. A provider fault can be retried once it recovers.</li>
+  <li><st>Unknown</st>? Check with the provider, then <b>Resolve</b>.</li>
+  <li><st>Queued</st> or <st>Scheduled</st> for a long time? Check the <b>Attempts</b> line on the delivery, which shows when the next try is due, quiet hours on the company, and queues and workers on <b>System monitoring</b>.</li>
+  <li><st>Delivered</st>, but the person says it didn't arrive? Ask them to check spam or blocked senders. For email, check <b>Sender domain guidance</b>. Quote the provider message id to the provider.</li>
+</ol>
+<h3 id="tr-symptoms">Other common problems</h3>
+<div class="tw"><table>
+<thead><tr><th style="width:38%">Problem</th><th>Check</th></tr></thead>
+<tbody>
+<tr><td>A button in this manual is missing</td><td>Your role does not include it. See <x to="app-roles"/>.</td></tr>
+<tr><td>A link returns you to the Dashboard</td><td>Your role cannot open that screen.</td></tr>
+<tr><td>The console shows <b>Offline</b></td><td>The live connection dropped. It keeps retrying. Refresh the page if it stays offline.</td></tr>
+<tr><td>A WhatsApp message is always <st>Suppressed</st></td><td>The person has no <b>Channel opt-in</b>. Record it, or set an SMS fallback on the rule.</td></tr>
+<tr><td>A promotional message is delayed</td><td>Quiet hours on the company or rule. It waits for the window to end.</td></tr>
+<tr><td>A rule never fires</td><td>Simulate it. Check <b>Enabled</b>, the event type, and whether an earlier rule has <b>Stop evaluating later rules…</b> ticked.</td></tr>
+<tr><td>A template change is not going out</td><td>Saved drafts do not send. It must be approved and show <st>Active</st>.</td></tr>
+<tr><td>Campaign recipients all show <st>Skipped</st></td><td>Promotional class with no marketing consent. Read the <b>Error</b> column.</td></tr>
+<tr><td>Campaign recipients all show <st>Failed</st></td><td>The template needs a variable the campaign does not supply. See the warning in <x to="sec-c-new"/>.</td></tr>
+<tr><td>A provider shows <st>Unhealthy</st></td><td>Select <b>Test</b> and read the result. Check credentials and network access.</td></tr>
+<tr><td>A webhook shows <st>Disabled</st></td><td>Read <b>Attempts</b>, fix the receiver, select <b>Enable</b>.</td></tr>
+<tr><td>A provider's receipts never arrive</td><td>The provider needs the account's <b>Callback URL</b>. SMTP has no receipts.</td></tr>
+</tbody></table></div>
+<h3 id="tr-errors">Common error messages</h3>
+<p>Errors appear in a red banner, with the code and a correlation id.</p>
+<div class="tw"><table>
+<thead><tr><th style="width:50%">Message</th><th>What it means</th></tr></thead>
+<tbody>
+<tr><td><code>Invalid email or password.</code></td><td>Sign-in failed. Check both, or ask your administrator.</td></tr>
+<tr><td><code>You do not have access to this resource.</code></td><td>Your role cannot do this, even though the button is visible.</td></tr>
+<tr><td><code>The notification could not be rendered.</code></td><td>A required template variable is missing.</td></tr>
+<tr><td><code>None of the requested channels could be addressed for the recipient(s).</code></td><td>The recipient has no address for the chosen channels.</td></tr>
+<tr><td><code>The template is invalid. body: Template HTML contains a disallowed construct</code></td><td>Remove the script, event handler, frame or <code>javascript:</code> link.</td></tr>
+<tr><td><code>The rule is invalid.</code></td><td>The message lists what to complete.</td></tr>
+<tr><td><code>Invalid cron expression</code></td><td>Check the five fields of the schedule.</td></tr>
+<tr><td><code>Passwords must be at least 12 characters.</code></td><td>Enter a longer password.</td></tr>
+<tr><td><code>The provider account does not support template submission.</code></td><td>Choose a real WhatsApp account, not a Mock one.</td></tr>
+<tr><td><code>An unexpected error occurred.</code></td><td>Something failed inside the hub. In <b>Live preview</b>, first check for an unclosed block. Otherwise quote the correlation id to support.</td></tr>
+</tbody></table></div>
+<h4 id="tr-app">Errors your application sees</h4>
+<div class="tw"><table>
+<thead><tr><th style="width:30%">Code</th><th>Meaning</th></tr></thead>
+<tbody>
+<tr><td><code>quota_exceeded</code></td><td>A monthly quota is used up (<x to="sec-us-quota"/>).</td></tr>
+<tr><td><code>insufficient_credits</code></td><td>The prepaid balance is too low (<x to="sec-us-credit"/>).</td></tr>
+<tr><td><code>company_suspended</code>, <code>tenant_suspended</code>, <code>application_suspended</code></td><td>See <x to="ch-suspension"/>.</td></tr>
+<tr><td><code>no_deliverable_channels</code></td><td>No channel could be used for the recipient.</td></tr>
+<tr><td><code>rate_limited</code></td><td>The application is sending too fast for its rate limit.</td></tr>
+</tbody></table></div>
+
+<h2 id="app-dev" appendix="1" data-ix="API|Developers|Installers|IIS">For developers and installers</h2>
+<p class="lead">Everything in the console is also available through a REST API at <code>/api/v1</code>. A full, generated reference is linked as <b>API reference</b> at the foot of the menu.</p>
+<h4 id="dev-send">Sending a notification</h4>
+<pre><code># 1. Get a token with a client credential from Applications
+curl -X POST https://hub.example.com/connect/token \
+  -d grant_type=client_credentials -d client_id=$ID -d client_secret=$SECRET
+
+# 2. Send
+curl -X POST https://hub.example.com/api/v1/notifications/send \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -H "Idempotency-Key: invoice-10045-created" \
+  -d '{ "companyId": "&lt;company id&gt;",
+        "notificationType": "INVOICE_CREATED",
+        "recipient": { "customerId": "CUST-1001" },
+        "channels": ["email", "whatsapp"],
+        "variables": { "CustomerName": "ABC Traders", "InvoiceNumber": "INV-10045",
+                       "InvoiceAmount": "18400", "InvoiceDate": "2026-11-06" } }'
+# 202 Accepted: { "notificationId": "…", "status": "accepted", "deliveries": [ … ] }</code></pre>
+<h4 id="dev-event">Publishing a business event for rules</h4>
+<pre><code>curl -X POST https://hub.example.com/api/v1/events \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{ "companyId": "&lt;company id&gt;", "eventType": "payment.overdue",
+        "payload": { "customer": { "customerId": "CUST-1001" }, "DaysOverdue": 12 } }'</code></pre>
+<h4 id="dev-pointers">Where to go next</h4>
+<div class="tw"><table>
+<thead><tr><th style="width:36%">Document</th><th>Covers</th></tr></thead>
+<tbody>
+<tr><td><code>docs/api.md</code></td><td>Authentication, scopes, idempotency, errors, every resource, webhooks</td></tr>
+<tr><td><code>docs/providers.md</code></td><td>Each provider type, its settings, secrets and callbacks; WhatsApp and DLT</td></tr>
+<tr><td><code>docs/wings-integration.md</code></td><td>Wings MCP Server and AI agents, Wings Code, SDKs</td></tr>
+<tr><td><code>docs/architecture.md</code></td><td>How the hub is built</td></tr>
+<tr><td><code>docs/operations.md</code></td><td>Topologies, configuration, backup and retention</td></tr>
+<tr><td><code>deploy/iis/README.md</code></td><td>Hosting on Windows Server with IIS</td></tr>
+</tbody></table></div>
+
+<h2 id="app-glossary" appendix="1" data-ix="Glossary">Glossary</h2>
+<dl class="gloss"><div><dt>Application</dt><dd>A system that sends through the hub.</dd></div><div><dt>Approval</dt><dd>A second person's decision on a change. See maker-checker.</dd></div><div><dt>Attempt</dt><dd>One try at handing a delivery to a provider.</dd></div><div><dt>Campaign</dt><dd>One message sent to many recipients at a controlled pace.</dd></div><div><dt>Channel</dt><dd>Email, SMS, WhatsApp, in-app, push, web push or webhook.</dd></div><div><dt>Circuit breaker</dt><dd>Automatic rest for a provider that keeps failing.</dd></div><div><dt>Client credential</dt><dd>The id and secret an application uses to sign in.</dd></div><div><dt>Company</dt><dd>A business inside a tenant.</dd></div><div><dt>Consent</dt><dd>A recorded agreement to receive messages for a channel and purpose.</dd></div><div><dt>Correlation id</dt><dd>A reference linking an error or request to its records.</dd></div><div><dt>Cron expression</dt><dd>Five fields that describe a repeating time.</dd></div><div><dt>Dead letter</dt><dd>An item that used up its retries in a queue.</dd></div><div><dt>Delivery</dt><dd>One message to one address on one channel.</dd></div><div><dt>DLT</dt><dd>India's telecom registry for SMS senders and templates.</dd></div><div><dt>E.164</dt><dd>The full international phone format, such as +919845012345.</dd></div><div><dt>Escalation</dt><dd>A follow-up message when the first is not acted on in time.</dd></div><div><dt>Event</dt><dd>Something an application reports, such as <code>payment.overdue</code>.</dd></div><div><dt>Fallback</dt><dd>A second channel or provider used when the first fails.</dd></div><div><dt>Hard bounce</dt><dd>A permanent email delivery failure.</dd></div><div><dt>Locale</dt><dd>A language code, such as <code>en</code> or <code>hi</code>.</dd></div><div><dt>Maker-checker</dt><dd>The rule that the person who asks cannot also approve.</dd></div><div><dt>Message class</dt><dd>Transactional, promotional or critical.</dd></div><div><dt>Notification</dt><dd>One request to tell someone something.</dd></div><div><dt>Notification type</dt><dd>A named kind of message with its defaults.</dd></div><div><dt>Payload</dt><dd>The data sent with an event.</dd></div><div><dt>Provider</dt><dd>The outside service that carries a message.</dd></div><div><dt>Quiet hours</dt><dd>Times when chosen messages wait, in the recipient's local time.</dd></div><div><dt>Quota</dt><dd>A monthly limit on messages.</dd></div><div><dt>Retention</dt><dd>How long message bodies and records are kept.</dd></div><div><dt>Rule</dt><dd>Turns an event into notifications.</dd></div><div><dt>Sandbox</dt><dd>An application mode that never reaches real providers.</dd></div><div><dt>Scope</dt><dd>On a role, what it covers. On a credential, what it allows.</dd></div><div><dt>Segment</dt><dd>A filter that selects contacts for a campaign.</dd></div><div><dt>Sender identity</dt><dd>The address or number a message goes out under.</dd></div><div><dt>Suppression</dt><dd>A block on an address.</dd></div><div><dt>Template</dt><dd>The wording of a message, versioned and approved.</dd></div><div><dt>Tenant</dt><dd>A customer organisation on the hub.</dd></div><div><dt>Throttle</dt><dd>The most messages a campaign sends per minute.</dd></div><div><dt>Webhook</dt><dd>A signed call from the hub to an application.</dd></div></dl>
+</section>

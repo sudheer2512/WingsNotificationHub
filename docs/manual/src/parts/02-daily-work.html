@@ -1,0 +1,189 @@
+<section class="p2">
+<div class="part-open"><div class="pk">Part 2</div><h1 id="part-2" part="2">Daily work</h1><p>Watch what is being sent, find a message, put right what went wrong, answer customers and decide approvals.</p><ul class="part-list" data-part="2"></ul></div>
+
+<h2 id="ch-dashboard" data-ix="Dashboard|Success rate|Retry backlog|Awaiting operator">Dashboard</h2>
+<p class="lead">The dashboard answers one question at a glance: is messaging healthy right now?</p>
+<fig src="dashboard-full.jpg" cap="The dashboard: filters, summary cards, trends, provider health and queues."/>
+<h3 id="sec-dash-filter">Narrowing what you see</h3>
+<p>Use the filters across the top: <b>Tenant</b> (only if you can see more than one), <b>Company</b>, <b>Application</b>, <b>Channel</b>, <b>Provider</b>, <b>From</b> and <b>To</b>. The dashboard updates by itself when deliveries change, and at least once a minute.</p>
+<h3 id="sec-dash-cards">Reading the cards</h3>
+<p>Selecting a card opens the <b>Notification explorer</b> filtered to that card, if your role can open the explorer. If it cannot, selecting a card does nothing.</p>
+<div class="tw"><table>
+<thead><tr><th style="width:21%">Card</th><th>What it counts</th></tr></thead>
+<tbody>
+<tr><th>Notifications</th><td>Notification requests received. Hover to see the number of deliveries.</td></tr>
+<tr><th>Sent today</th><td>Sent so far today.</td></tr>
+<tr><th>Delivered</th><td>Confirmed as delivered. Hover to see how many more were accepted by providers.</td></tr>
+<tr><th>Failed</th><td>Deliveries that ended in failure.</td></tr>
+<tr><th>Pending</th><td>Scheduled, queued, processing, submitted or retrying.</td></tr>
+<tr><th>Success rate</th><td>(delivered + accepted) ÷ (delivered + accepted + failed). The card is green from 95 %, amber from 80 %, red below that.</td></tr>
+<tr><th>Retry backlog</th><td>Deliveries waiting for an automatic retry.</td></tr>
+<tr><th>Awaiting operator</th><td>Unknown-outcome deliveries waiting for a person to decide. See <x to="sec-resolve"/>.</td></tr>
+<tr><th>Suppressed</th><td>Blocked by consent, preference or suppression policy.</td></tr>
+<tr><th>Estimated cost</th><td>Estimated provider cost. Opens <b>Usage &amp; billing</b> if your role allows.</td></tr>
+</tbody></table></div>
+<h3 id="sec-dash-panels">Reading the panels</h3>
+<ul>
+  <li><b>Deliveries per hour (last 24 h)</b> shows volume, with failures in a contrasting colour. <b>peak</b> is the busiest hour.</li>
+  <li><b>Channel usage</b> shows deliveries per channel, then delivered / failed.</li>
+  <li><b>Provider health</b> lists each provider's health, average response and attempts in 24 hours. Select <b>Providers</b> to open that screen.</li>
+  <li><b>Queues</b> shows work waiting. A number under <b>Dead-lettered</b> needs attention: see <x to="sec-dead"/>.</li>
+  <li><b>Status breakdown</b> counts deliveries per status. Select a status to open the explorer filtered to it.</li>
+</ul>
+
+<h2 id="ch-explorer" data-ix="Notification explorer|Searching deliveries|Timeline">Notification explorer</h2>
+<p class="lead">The explorer lists every delivery you are allowed to see. Use it to find out what happened to a message, and to put it right.</p>
+<fig src="explorer.jpg" cap="The Notification explorer, showing one row per delivery."/>
+<h3 id="sec-find">Finding a delivery</h3>
+<div class="who"><b>Who can do this:</b> everyone who can open the explorer, which is every role except template designer and template approver.</div>
+<ol class="steps">
+  <li>Open <b>Notification explorer</b>.</li>
+  <li>Use any of the filters:
+    <ul>
+      <li><b>Company</b>, <b>Application</b>, <b>Channel</b>, <b>Provider</b>, <b>From</b>, <b>To</b>, and <b>Tenant</b> if you see more than one.</li>
+      <li><b>Status</b>, for example <st>Failed</st>.</li>
+      <li><b>Recipient (exact email or phone)</b>: the full address, such as <code>customer@example.com</code> or <code>+919876543210</code>. Part of an address finds nothing.</li>
+      <li><b>Notification type</b>, such as <code>PAYMENT_OVERDUE</code>. Lower case also works.</li>
+      <li><b>Notification id</b>, if someone gave you one.</li>
+      <li><b>Awaiting operator</b>, to list only deliveries that need a decision.</li>
+    </ul>
+  </li>
+  <li>Press Enter after typing in a text box. The total at the top shows how many match.</li>
+  <li>Select <b>Date / time</b>, <b>Attempts</b> or <b>Cost</b> in the table heading to sort.</li>
+</ol>
+<aside class="tip"><p>Leave <b>Live</b> switched on and the first page reloads when statuses change. Switch it off to hold the list still while you read.</p></aside>
+
+<h3 id="sec-read" data-ix="Timeline|Attempts|Content purged|Content hidden">Reading a delivery</h3>
+<p>Select a row. A panel opens on the right with the delivery's details and three tabs.</p>
+<fig src="explorer-failed-timeline.jpg" w="78" cap="A failed SMS delivery, with its Timeline tab." pins="1@83,4.4 2@64.4,39.7 3@14.2,48.3 4@30.9,48.3 5@44.3,48.3"/>
+<ol class="pins">
+  <li><b>Retry</b> appears when a retry is possible.</li>
+  <li><b>Failure</b> shows the error code and reason.</li>
+  <li><b>Timeline</b>: every event in order.</li>
+  <li><b>Attempts</b>: each try at a provider.</li>
+  <li><b>Content</b>: the message as rendered.</li>
+</ol>
+<ul>
+  <li>The details list shows the recipient, type and template with its version, the source of the request, provider, attempts, cost and any failure. Links such as <b>Fallback of</b> open the related delivery.</li>
+  <li><b>Timeline</b> shows who or what changed the status. <b>source:</b> tells you whether it came from the hub, the provider or an operator.</li>
+  <li><b>Attempts</b> shows the outcome of each try, the response code, the time taken and the provider's sanitised response.</li>
+  <li><b>Content</b> shows the rendered message. <b>Content hidden</b> means your role cannot read message bodies. <b>Content purged</b> means the retention period has passed.</li>
+  <li><b>Full history</b> lists all deliveries of the same notification, with attempts and events counted. Addresses are masked in this list.</li>
+</ul>
+<fig src="explorer-attempts.jpg" w="66" cap="The Attempts tab, with the provider's sanitised response."/>
+<div class="tw"><table>
+<thead><tr><th style="width:26%">Attempt outcome</th><th>What it means</th></tr></thead>
+<tbody>
+<tr><th>Accepted</th><td>The provider took the message.</td></tr>
+<tr><th>Transient failure</th><td>The provider did not take it, and trying again may work. The hub retries or falls back by itself.</td></tr>
+<tr><th>Permanent failure</th><td>The provider refused it for good, for example a bad address. Retrying will not help until the cause is fixed.</td></tr>
+<tr><th>Ambiguous</th><td>Nobody knows whether the provider took it, for example a timeout after sending. See <x to="sec-resolve"/>.</td></tr>
+<tr><th>Throttled</th><td>The provider asked the hub to slow down. This does not count as a failed attempt.</td></tr>
+</tbody></table></div>
+
+<h3 id="sec-statuses" data-ix="Delivery status|Suppressed">What each status means</h3>
+<p>A delivery normally moves through <st>Queued</st> <st>Processing</st> <st>Submitted</st> <st>Provider accepted</st> <st>Sent</st> <st>Delivered</st> <st>Read</st>. Not every channel reaches every status: some email and SMS providers never confirm delivery, and only some channels report that a message was read.</p>
+<div class="tw"><table>
+<thead><tr><th style="width:24%">Needs attention</th><th>What to do</th></tr></thead>
+<tbody>
+<tr><td><st>Failed</st></td><td>Read the failure, fix the cause, then retry (<x to="sec-retry"/>).</td></tr>
+<tr><td><st>Unknown</st></td><td>Decide with <b>Resolve</b> (<x to="sec-resolve"/>).</td></tr>
+<tr><td><st>Expired</st></td><td>It ran out of time before it could be sent. Retry if it is still useful.</td></tr>
+<tr><td><st>Suppressed</st></td><td>The hub chose not to send it. Read the reason on the Timeline, then see <x to="ch-recipients"/>. Do not retry.</td></tr>
+<tr><td><st>Retry pending</st></td><td>The hub will try again by itself. You can also select <b>Retry</b>.</td></tr>
+</tbody></table></div>
+<p>All statuses are in <x to="app-status"/>.</p>
+<fig src="explorer-suppressed.jpg" w="66" cap="A suppressed delivery: the Failure line gives the reason, and there are no provider attempts."/>
+
+<h3 id="sec-retry" data-ix="Retry">Retrying a failed delivery</h3>
+<div class="who"><b>Who can do this:</b> platform, tenant, company and application administrators, and notification operators.</div>
+<ol class="steps">
+  <li>Find the delivery and open it. <b>Retry</b> appears for <st>Failed</st>, <st>Expired</st> and <st>Retry pending</st>.</li>
+  <li>Read the <b>Failure</b> line. If the address is wrong or blocked, fix that first, or the retry will fail the same way.</li>
+  <li>Select <b>Retry</b>. You see <code>Retry scheduled (RetryPending). Earlier attempts stay on the timeline.</code></li>
+  <li>Watch the panel: the status and Timeline update by themselves.</li>
+</ol>
+<aside class="note"><p>A retry keeps the same delivery. Earlier attempts stay on the timeline as a permanent record, and a new attempt is added below them.</p></aside>
+
+<h3 id="sec-resolve" data-ix="Resolve|Unknown outcome|Duplicate risk">Resolving an unknown outcome</h3>
+<p>Sometimes a connection fails just after a message was handed over, so nobody knows whether the provider took it. The hub will not resend by itself when that could send a duplicate. The delivery stops at <st>Unknown</st>, is marked <st tone="bad" icon="error">Awaiting operator</st>, and raises a warning alert.</p>
+<div class="who"><b>Who can do this:</b> platform, tenant, company and application administrators, and notification operators.</div>
+<ol class="steps">
+  <li>On the <b>Dashboard</b>, select the <b>Awaiting operator</b> card. Or tick <b>Awaiting operator</b> in the explorer.</li>
+  <li>Open the delivery.</li>
+  <li>Check with the provider or the recipient whether the message arrived. The <b>Provider</b> line and the <b>Attempts</b> tab give you the reference to quote.</li>
+  <li>Select <b>Resolve</b> and choose:
+    <ul>
+      <li><b>Resend (accept duplicate risk)</b>: it did not arrive, or a duplicate does no harm. The delivery is sent again.</li>
+      <li><b>Mark as sent</b>: the provider did accept it. Nothing is resent.</li>
+      <li><b>Mark as failed</b>: it did not go, and you do not want to resend. Nothing is resent.</li>
+    </ul>
+  </li>
+  <li>Enter a <b>Comment for the audit trail</b>, then select <b>Resend</b> or <b>Confirm</b>.</li>
+</ol>
+<div class="fig-row">
+  <fig src="explorer-resolve-menu.jpg" cap="An unknown outcome and the Resolve menu."/>
+  <fig src="dialog-resolve.jpg" cap="Resending asks you to accept the risk of a duplicate."/>
+</div>
+<aside class="warn"><p>Resending an invoice twice is usually harmless. Resending a payment reminder or a one-time code may not be. When in doubt, check with the provider first.</p></aside>
+
+<h3 id="sec-export" data-ix="Export|Excel|CSV">Exporting to a file</h3>
+<ol class="steps">
+  <li>Set the filters. The export contains what the filters select.</li>
+  <li>Select <b>Export</b>, then <b>CSV</b> or <b>Excel (.xlsx)</b>. The file downloads with a name such as <code>deliveries-20261106-1406.csv</code>.</li>
+</ol>
+<aside class="note"><p>Email addresses and phone numbers are masked in exports, for every role. Times in the file are UTC, so they differ from the local times on the screen.</p></aside>
+
+<h2 id="ch-inbox" data-ix="Inbox|Replies|WhatsApp 24-hour window|Customer replies">Inbox</h2>
+<p class="lead">When customers reply on WhatsApp, SMS or email, their messages arrive here as conversations, and you can answer from the console.</p>
+<fig src="inbox-conversation.jpg" cap="A WhatsApp conversation. Your own messages are on the right, with their delivery status."/>
+<h3 id="sec-inbox-read">Reading conversations</h3>
+<div class="who"><b>Who can do this:</b> everyone who can open the Inbox. Replying needs a role with inbox rights: platform, tenant and company administrators, and notification operators. Auditors and application administrators read only.</div>
+<ol class="steps">
+  <li>Open <b>Inbox</b>. Conversations are on the left, most recent first. A number shows unread messages.</li>
+  <li>Narrow the list with <b>Search address or name</b> (press Enter), <b>Channel</b> or <b>Unread only</b>.</li>
+  <li>Select a conversation. It is marked as read if your role can reply.</li>
+</ol>
+<aside class="note"><p>Type names exactly as they appear, including capitals. In the demo system <code>Ramesh</code> finds a conversation and <code>ramesh</code> does not. A phone number or part of one always works.</p></aside>
+<p>Each conversation shows its routing to your application: <st>Routed</st> means the application received the reply, <st>Pending</st> means it has not yet, and <st>No subscriber</st> means no application is listening for replies (see <x to="ch-webhooks"/>).</p>
+<h3 id="sec-inbox-reply" data-ix="Reply">Replying to a customer</h3>
+<ol class="steps">
+  <li>Open the conversation.</li>
+  <li>Type in <b>Reply</b>, up to 4096 characters.</li>
+  <li>Select <b>Send reply</b>, or press Ctrl+Enter (Cmd+Enter on a Mac). You see <code>Reply queued</code>, and the message appears with its status.</li>
+  <li>Select <b>details</b> under a message to open its delivery in the explorer.</li>
+</ol>
+<h3 id="sec-inbox-window">The WhatsApp 24-hour window</h3>
+<p>WhatsApp allows free-form replies only within 24 hours of the customer's last message. The conversation heading counts down, for example <st tone="good" icon="lock_open">Window closes in 23 h 26 min</st>.</p>
+<p>After that it shows <st tone="warn" icon="lock">Window closed</st>, and the reply box is turned off. Send an approved WhatsApp template instead, or wait for the customer to write again.</p>
+<fig src="inbox-window-closed.jpg" cap="After 24 hours the reply box is switched off."/>
+<aside class="note"><p>A reply is added to a conversation only when the hub can match it to a notification or customer. A message on a shared provider that cannot be matched does not appear in the Inbox. It raises a warning alert on <b>System monitoring</b> instead.</p></aside>
+<aside class="note"><p>Platform administrators also see <b>Simulate reply</b>. It is a test helper and works only on a test or development hub.</p></aside>
+
+<h2 id="ch-approvals" data-ix="Approvals|Maker-checker|Reject">Approvals</h2>
+<p class="lead">Important changes need a second person. This is called maker-checker: whoever asked for the change cannot approve it.</p>
+<fig src="approvals-own-request.jpg" cap="Pending approvals. You cannot decide your own request: it is marked Your own request."/>
+<div class="tw"><table>
+<thead><tr><th style="width:24%">Kind</th><th style="width:40%">What approving does</th><th>Who can decide</th></tr></thead>
+<tbody>
+<tr><th>Template version</th><td>Activates the version. New notifications use it at once.</td><td>Template approver, company, tenant and platform administrators</td></tr>
+<tr><th>Campaign</th><td>Schedules the campaign, or starts it if it has no schedule.</td><td>Company, tenant and platform administrators</td></tr>
+<tr><th>Provider credentials</th><td>Replaces the stored credentials of a provider account.</td><td>Company, tenant and platform administrators</td></tr>
+<tr><th>AI notification</th><td>Sends a message that an AI agent asked to send.</td><td>Company, tenant and platform administrators</td></tr>
+</tbody></table></div>
+<p>A template approver sees only template versions on this screen. Other roles see the kinds they can decide.</p>
+<h3 id="sec-approve">Approving or rejecting a request</h3>
+<ol class="steps">
+  <li>Open <b>Approvals</b>. <b>Pending</b> is selected.</li>
+  <li>Select <b>open</b> under a request to review it first. Each kind opens the screen where you can read the detail.</li>
+  <li>Select <b>Approve</b> or <b>Reject</b>.</li>
+  <li>Add a comment. It is optional when you approve, and a <b>Reason</b> is required when you reject.</li>
+  <li>Confirm. The request leaves the list.</li>
+</ol>
+<div class="fig-row">
+  <fig src="dialog-approve-campaign.jpg" cap="Approving tells you what will happen."/>
+  <fig src="dialog-reject.jpg" cap="Rejecting needs a reason."/>
+</div>
+<p>To review past decisions, select <b>Approved</b>, <b>Rejected</b> or <b>Cancelled</b>. A <b>Decision</b> column shows the outcome, when it happened and the comment.</p>
+<aside class="note"><p>AI agents can send only notification types that allow it. If a type also needs human approval, the agent's request waits here until someone decides. Rejecting tells the requester through the audit trail. No message goes to the recipient.</p></aside>
+</section>

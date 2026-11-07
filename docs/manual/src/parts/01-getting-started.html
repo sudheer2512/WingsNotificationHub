@@ -1,0 +1,156 @@
+<section class="front">
+<h1 id="how-to" class="front-h">How to use this manual</h1>
+<p class="lead">This manual is for the people who run Wings Notification Hub from day to day through its administration console: administrators, template designers and approvers, campaign managers, operators and auditors. You do not need to be a developer.</p>
+<p>It is written around tasks. Each task has a heading that starts with what you want to do, followed by numbered steps, what you will see, and what to do when something goes wrong.</p>
+<ul>
+  <li><b>New to the hub?</b> Read <x to="ch-what"/> to <x to="ch-roles"/> first.</li>
+  <li><b>Looking after messages today?</b> Go to Part 2: <x to="ch-explorer"/> covers finding, retrying and resolving deliveries.</li>
+  <li><b>Writing messages or automation?</b> Go to Part 3, starting at <x to="ch-templates"/>.</li>
+  <li><b>Setting up a customer or provider?</b> Go to Part 4, starting at <x to="ch-providers"/>.</li>
+  <li><b>Something went wrong?</b> Go straight to <x to="app-trouble"/>.</li>
+</ul>
+<h4 id="how-conventions">Conventions</h4>
+<div class="tw"><table>
+<thead><tr><th style="width:30%">You will see</th><th>It means</th></tr></thead>
+<tbody>
+<tr><td><b>Save draft</b></td><td>A label on the screen: a button, tab, menu item or field.</td></tr>
+<tr><td><code>INVOICE_CREATED_V1</code></td><td>Something you type or read exactly as shown: a code, a value, a variable.</td></tr>
+<tr><td><st>Delivered</st> <st>Failed</st></td><td>A status, shown as in the console. Status is always an icon plus text, never colour alone.</td></tr>
+<tr><td class="nw">Who can do this</td><td>The roles that can perform a task. If you cannot see a button that a task mentions, your role does not include it. Appendix C lists every role.</td></tr>
+</tbody></table></div>
+<aside class="tip"><p>Tips save you time.</p></aside>
+<aside class="note"><p>Notes explain behaviour that may surprise you.</p></aside>
+<aside class="warn"><p>Warnings mark actions that cannot be undone or that affect live messages.</p></aside>
+<aside class="note"><p>The screens in this manual show sample data for fictional businesses such as ABC Traders Pvt Ltd. Your own console shows your data. Providers with “Mock” in their name exist only in demo data: they simulate sending and never reach a real person. Your provider list will show your real accounts.</p></aside>
+</section>
+<!--contents-->
+
+<section class="p1">
+<div class="part-open"><div class="pk">Part 1</div><h1 id="part-1" part="1">Getting started</h1><p>What the hub does, how to sign in, how to find your way around, and what your role lets you do.</p><ul class="part-list" data-part="1"></ul></div>
+
+<h2 id="ch-what" data-ix="Channel|Notification|Delivery|Tenant|Company|Application|Template|Rule|Provider">What the hub does</h2>
+<p class="lead">Wings Notification Hub is the one place your business applications go to send messages. An ERP, HRMS, CRM or other system hands the hub a request or a business event. The hub picks the wording, checks consent, chooses a provider, sends, retries and records exactly what happened.</p>
+<p>It carries seven <b>channels</b>: email, SMS, WhatsApp, in-app, push, web push and webhook. Customers can also reply on WhatsApp, SMS and email, and those replies arrive in the console's Inbox.</p>
+
+<h3 id="sec-journey">A notification's journey</h3>
+<div class="journey" role="img" aria-label="Application, then rules and template, then consent checks, then provider, then recipient. Status comes back to the explorer and to the application.">
+  <div class="node hl"><b>Application</b><span>ERP, HRMS or CRM sends a request or a business event</span></div>
+  <div class="node"><b>Rules and template</b><span>A rule picks recipients and channels; a template becomes the message</span></div>
+  <div class="node"><b>Consent checks</b><span>Preferences, consent, suppressions and quiet hours</span></div>
+  <div class="node"><b>Provider</b><span>Routing picks an account, sends, retries and falls back</span></div>
+  <div class="node hl"><b>Recipient</b><span>Email, SMS, WhatsApp, in-app, push, web push or webhook</span></div>
+</div>
+<div class="journey-back"><ic name="schedule"/>Every step is recorded. Receipts from providers update the delivery's status, which you read in the Notification explorer and your application can receive by webhook.</div>
+
+<h3 id="sec-ideas">Key ideas</h3>
+<div class="tw"><table>
+<thead><tr><th style="width:22%">Term</th><th>What it means</th></tr></thead>
+<tbody>
+<tr><th>Tenant</th><td>A customer organisation on the hub. It has its own retention periods, consent setting and branding. Data never crosses between tenants.</td></tr>
+<tr><th>Company</th><td>A business unit or legal entity inside a tenant, with its own time zone, quiet hours and branding.</td></tr>
+<tr><th>Application</th><td>A system that sends through the hub, such as Wings ERP Auto. It can send only for the companies it is enabled for.</td></tr>
+<tr><th>Notification</th><td>One request to tell someone something, for example “invoice INV-10045 was created”.</td></tr>
+<tr><th>Delivery</th><td>One message to one address on one channel. A single notification sent by email and WhatsApp has two deliveries, each with its own status.</td></tr>
+<tr><th>Channel</th><td>The route a message takes: email, SMS, WhatsApp, in-app, push, web push or webhook.</td></tr>
+<tr><th>Template</th><td>The wording of a message for one channel and language, with variables such as <code>{{CustomerName}}</code>. Templates are versioned and approved by a second person.</td></tr>
+<tr><th>Notification type</th><td>A named kind of message, such as <code>INVOICE_CREATED</code>, with its message class, default channels and default template.</td></tr>
+<tr><th>Rule</th><td>Turns a business event, such as <code>payment.overdue</code>, into notifications: who gets what, on which channel, under which conditions.</td></tr>
+<tr><th>Provider</th><td>The outside service that carries a message, such as a mail server or SMS gateway. A <b>provider account</b> holds its settings and credentials.</td></tr>
+<tr><th>Sender identity</th><td>The from address, SMS sender id or WhatsApp number a message goes out under.</td></tr>
+<tr><th>Message class</th><td>Whether a message is transactional, promotional or critical. See below.</td></tr>
+</tbody></table></div>
+
+<h3 id="sec-classes" data-ix="Message class|Transactional|Promotional|Critical|Quiet hours">Message classes</h3>
+<p>Every message has a class. The class decides which consent checks apply and whether quiet hours can delay it.</p>
+<div class="tw"><table>
+<thead><tr><th style="width:17%">Class</th><th style="width:33%">Use it for</th><th>How it behaves</th></tr></thead>
+<tbody>
+<tr><th>Transactional</th><td>Messages about something the recipient is party to: invoices, approvals, service updates.</td><td>Honours the recipient's preferences, unless the notification type is mandatory. Ignores unsubscribes.</td></tr>
+<tr><th>Promotional</th><td>Marketing and offers.</td><td>Needs marketing consent when the tenant requires it. Honours preferences and unsubscribes. Can be delayed by quiet hours.</td></tr>
+<tr><th>Critical</th><td>Security and regulatory notices.</td><td>Ignores preferences and opt-outs. Never delayed by quiet hours. Still cannot reach a hard-bounced or invalid address, and WhatsApp still needs opt-in.</td></tr>
+</tbody></table></div>
+<p>The full rules are in <x to="sec-consent-rules"/>.</p>
+
+<h2 id="ch-signin" class="flow" data-ix="Signing in|Signing out|Session|Password">Signing in</h2>
+<p class="lead">You sign in with an email address and password from your administrator. Your session is kept only in the current browser tab, so a new tab asks you to sign in again.</p>
+<h4 id="task-signin">To sign in</h4>
+<ol class="steps">
+  <li>Open your hub's web address in a browser.</li>
+  <li>Enter your <b>Email</b> and <b>Password</b>. Use the eye icon to show what you typed.</li>
+  <li>Select <b>Sign in</b>. The console opens on the first screen your role allows, which is usually the <b>Dashboard</b>.</li>
+</ol>
+<fig src="sign-in.jpg" w="40" cap="The sign-in page."/>
+<h4 id="task-signout">To sign out</h4>
+<ol class="steps">
+  <li>Select your name at the top right of the console.</li>
+  <li>Select <b>Sign out</b>.</li>
+</ol>
+<div class="tw"><table>
+<thead><tr><th style="width:42%">What you see</th><th>What it means and what to do</th></tr></thead>
+<tbody>
+<tr><td><code>Sign-in failed: Invalid email or password.</code></td><td>Check both fields. If you still cannot get in, ask your administrator. The console has no “forgot password” link.</td></tr>
+<tr><td><code>Your session expired or was rejected. Sign in again.</code></td><td>A session lasts 8 hours. It also ends when you sign out. Sign in again.</td></tr>
+<tr><td><code>No screens available</code></td><td>Your account has no roles. Ask an administrator to grant one (<x to="ch-users"/>).</td></tr>
+</tbody></table></div>
+
+<h2 id="ch-around" data-ix="Navigation|Live indicator|Alerts bell|Live events|Theme|Dark theme|Phone layout">Finding your way around</h2>
+<fig src="dashboard.jpg" cap="The console window. Numbered items are explained below." pins="1@15.6,34 2@77.6,5.5 3@81,5.5 4@84.4,5.5 5@92,5.5 6@9.5,97.6"/>
+<ol class="pins">
+  <li><b>Menu.</b> Grouped into main screens, <b>Operations</b> and <b>Administration</b>. You see only what your role allows.</li>
+  <li><b>Live indicator.</b> <b>Live</b> with a green dot means updates arrive by themselves. <b>Offline</b> means the connection dropped; the console keeps retrying.</li>
+  <li><b>Theme.</b> Each click moves between system, light and dark.</li>
+  <li><b>Live events bell.</b> Failed deliveries and customer replies, as they happen.</li>
+  <li><b>Your name.</b> Your roles, theme choice and <b>Sign out</b>.</li>
+  <li><b>API reference.</b> The technical reference for developers.</li>
+</ol>
+
+<h3 id="sec-bell">Using the live events bell</h3>
+<p>A badge on the bell counts events you have not seen. Select the bell to list them, then select an entry to open that delivery or conversation. Only failures and outcomes that need a decision are listed, so routine progress does not crowd it out.</p>
+<fig src="alerts-bell.jpg" w="62" cap="The live events list, with the switch for pop-ups."/>
+<ul>
+  <li>The list starts when you open the console and is kept only in that tab. For history, use the <b>Notification explorer</b>.</li>
+  <li>Turn <b>Pop-ups for customer replies</b> on or off at the top of the list. When it is on, a pop-up with an <b>Open</b> link appears at the bottom of the screen for each reply.</li>
+</ul>
+
+<h3 id="sec-screens">What every screen has in common</h3>
+<ul>
+  <li><b>Filters</b> sit above the data. The screen updates as you change a select list. In a text box, press Enter.</li>
+  <li><b>Rows open things.</b> Select a row in a table to see its detail, usually in a panel at the side or below.</li>
+  <li><b>Refresh</b> reloads the data. Screens that show live data also update by themselves.</li>
+  <li><b>Times</b> are shown in your browser's time zone. Exports from the explorer use UTC.</li>
+  <li><b>Errors</b> appear in a red banner with a short message, the error code and a correlation id. Quote the correlation id when you ask for help.</li>
+</ul>
+
+<h3 id="sec-theme">Choosing a light or dark theme</h3>
+<p>Select the theme button in the top bar, or select your name and choose <b>System theme</b>, <b>Light theme</b> or <b>Dark theme</b>. <b>System theme</b> follows your computer's setting. The same menu shows your roles and scope.</p>
+<fig src="user-menu.jpg" w="26" cap="The menu under your name."/>
+<fig src="dashboard-dark.jpg" cap="The dashboard in the dark theme."/>
+
+<h3 id="sec-phone">Using the console on a phone</h3>
+<p>On a narrow screen the menu folds away behind the <b>Menu</b> button at the top left, cards stack, and wide tables scroll sideways inside their own area. Everything still works, but templates, rules and reports are easier on a larger screen.</p>
+<div class="fig-row">
+  <fig src="phone-dashboard.jpg" cap="Dashboard on a phone."/>
+  <fig src="phone-menu.jpg" cap="The menu opened."/>
+  <fig src="phone-explorer.jpg" cap="Notification explorer."/>
+</div>
+
+<h2 id="ch-roles" data-ix="Roles|Scope|Permissions|Masked addresses">What each role sees</h2>
+<p class="lead">The console shows each person only the screens and buttons their role allows. Roles are granted at a <b>scope</b>: a whole tenant, one company, one application or one channel.</p>
+<div class="tw"><table>
+<thead><tr><th style="width:23%">Role</th><th style="width:37%">Typical work</th><th>Notable limits</th></tr></thead>
+<tbody>
+<tr><th>Platform administrator</th><td>Runs the hub for all tenants: tenants, shared providers, credits and rates.</td><td>None. The only role that can create tenants and change credits or rates.</td></tr>
+<tr><th>Tenant administrator</th><td>Runs one tenant: companies, applications, users, providers, approvals.</td><td>Cannot suspend its own tenant, add credits or change rates.</td></tr>
+<tr><th>Company administrator</th><td>Runs one company: templates, rules, campaigns, providers, approvals.</td><td>No <b>Users &amp; roles</b> screen. Cannot edit tenants or companies, or manage credentials.</td></tr>
+<tr><th>Application administrator</th><td>Runs one application: templates, rules, contacts, webhooks, credentials.</td><td>No approvals, audit log or emergency suspension.</td></tr>
+<tr><th>Template designer</th><td>Writes templates and notification types.</td><td>Sees rules but cannot change them. Cannot approve. Cannot deliver a test of an active template.</td></tr>
+<tr><th>Template approver</th><td>Reviews, approves, rejects, rolls back and retires templates.</td><td>Cannot edit template content. Sees only template requests in <b>Approvals</b>.</td></tr>
+<tr><th>Campaign manager</th><td>Builds campaigns, imports recipients, manages contacts.</td><td>Cannot approve campaigns. Cannot use <b>Test send</b> on a campaign.</td></tr>
+<tr><th>Notification operator</th><td>Watches deliveries, retries, resolves, answers the Inbox, requeues dead letters.</td><td>Sees providers and campaigns but cannot change them.</td></tr>
+<tr><th>Auditor</th><td>Reads everything, including the audit log and reports.</td><td>Cannot change anything except acknowledging alerts. Never sees message bodies. Addresses are masked.</td></tr>
+</tbody></table></div>
+<p>The full list is in <x to="app-roles"/>. Two examples of the difference a role makes:</p>
+<fig src="dashboard-designer.jpg" w="62" cap="A template designer's console: the menu shows only the screens the role can use."/>
+<fig src="explorer-auditor-masked.jpg" cap="An auditor sees masked addresses, such as r*****8@example.com."/>
+<aside class="note"><p>A narrower scope also narrows the data. A company administrator for ABC Traders Pvt Ltd sees only that company's deliveries, and an application administrator only that application's.</p></aside>
+</section>

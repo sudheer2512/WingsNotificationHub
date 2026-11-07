@@ -1,0 +1,403 @@
+<section class="p3">
+<div class="part-open"><div class="pk">Part 3</div><h1 id="part-3" part="3">Content and automation</h1><p>Write messages, decide when they go out and to whom, and keep every recipient's choices respected.</p><ul class="part-list" data-part="3"></ul></div>
+
+<h2 id="ch-templates" data-ix="Templates|Template manager">Templates</h2>
+<p class="lead">A template holds the wording of one message, for one channel and one language. Every change creates a version, and a second person approves it before it goes live.</p>
+<div class="who"><b>Who can do this:</b> template designers and platform, tenant, company and application administrators edit. Template approvers and platform, tenant and company administrators approve, activate and retire. Campaign managers and auditors can read. Operators do not see this screen.</div>
+<h3 id="sec-tree" data-ix="Template scope|Show empty scopes">Finding a template</h3>
+<p>The tree on the left runs from tenant to company, application, category and template. A company or application template overrides the tenant-wide one for that scope.</p>
+<fig src="templates-tree-search.jpg" cap="The template tree, filtered with Search templates."/>
+<ul>
+  <li>Use <b>Search templates</b> to match a code, name or channel.</li>
+  <li>Tick <b>Show empty scopes</b> to see companies and applications that have no templates yet.</li>
+  <li>Each template shows its status: <st>Draft</st> <st>In review</st> <st>Approved</st> <st>Active</st> <st>Retired</st> <st>Rejected</st>.</li>
+</ul>
+
+<h3 id="sec-t-create" data-ix="New template">Creating a template</h3>
+<ol class="steps">
+  <li>Select <b>New template</b>. If you selected a place in the tree first, the scope is filled in for you.</li>
+  <li>Choose the <b>Tenant</b>, <b>Company</b> and <b>Application</b>. Leave <b>All companies (tenant-wide)</b> and <b>All applications</b> to share it.</li>
+  <li>Enter a <b>Code</b>, such as <code>PAYMENT_RECEIPT_V1</code>, which is changed to capitals, and a <b>Name</b>.</li>
+  <li>Enter a <b>Category</b> to group it in the tree, choose the <b>Channel</b>, and enter the <b>Locale</b>, such as <code>en</code>, <code>hi</code> or <code>ta-IN</code>.</li>
+  <li>For email, enter a <b>Subject</b>.</li>
+  <li>Enter a first version in <b>Body</b>. You can polish it in the editor.</li>
+  <li>Select <b>Create draft</b>. The template opens in the editor as <st>Draft</st>.</li>
+</ol>
+<fig src="dialog-new-template.jpg" w="72" cap="The New template dialog."/>
+
+<h3 id="sec-t-edit" data-ix="Template editor|Rich text|HTML source|Live preview|Sample data">Editing a template</h3>
+<fig src="template-editor-preview.jpg" cap="The template editor." pins="1@25,15.5 2@76.7,7 3@97,10.6 4@62.6,36 5@45.6,40.4 6@67.2,74.4 7@95.8,32.2 8@80,94.8"/>
+<ol class="pins">
+  <li><b>Tree.</b> Select a template to open it.</li>
+  <li><b>Save draft</b> and <b>Submit</b>.</li>
+  <li><b>More actions:</b> test send, clone, retire.</li>
+  <li><b>Format.</b> HTML or plain text; rich text, HTML source or text part.</li>
+  <li><b>Toolbar</b> for rich text.</li>
+  <li><b>Variable chips</b> insert at the cursor.</li>
+  <li><b>Live preview</b> updates as you type.</li>
+  <li><b>Sample data</b> feeds the preview.</li>
+</ol>
+<h4 id="task-edit">To edit a template</h4>
+<ol class="steps">
+  <li>Select the template. An orange <st tone="warn" icon="event">Unsaved changes</st> chip appears as soon as you edit.</li>
+  <li>For email, choose <b>HTML</b> or <b>Plain text</b>. For HTML, choose how to work:
+    <ul>
+      <li><b>Rich text</b>: use the toolbar: <b>Bold</b>, <b>Italic</b>, <b>Underline</b>, <b>Heading</b>, <b>Paragraph</b>, <b>Bulleted list</b>, <b>Numbered list</b>, <b>Clear formatting</b> and <b>Link</b>.</li>
+      <li><b>HTML source</b>: edit the HTML directly.</li>
+      <li><b>Text part</b>: the plain-text alternative. Leave it empty and the hub generates one from the HTML.</li>
+    </ul>
+  </li>
+  <li>Insert variables with the chips under the editor. Dashed chips are built-in values the hub supplies when sending.</li>
+  <li>Check <b>Live preview</b>. Change <b>Sample data</b> to try other values. <b>Reset</b> rebuilds it from the variables' sample values.</li>
+  <li>Enter a <b>Change note</b>, then select <b>Save draft</b>.</li>
+</ol>
+<aside class="note"><p>Editing an active template does not affect what is being sent. Saving creates a new draft version, and the active version keeps sending until the new one is approved.</p></aside>
+<aside class="note"><p>Links can point to a web address or a variable: in the <b>Insert link</b> box enter <code>https://…</code> or <code>{{PaymentLink | url}}</code>.</p></aside>
+<aside class="warn"><p>Template HTML cannot contain scripts, event handlers, <code>javascript:</code> links or frames. Saving <code>&lt;script&gt;</code> fails with <code>Template HTML contains a disallowed construct: '&lt;script'</code>.</p></aside>
+
+<h3 id="sec-t-vars" data-ix="Variables|Filters|Built-in variables">Variables and filters</h3>
+<p>Variables are placeholders in double braces, such as <code>{{CustomerName}}</code>. The sending application supplies the values. Filters format them: <code>{{Amount | currency:INR}}</code> shows ₹18,400.00.</p>
+<fig src="template-variables.jpg" cap="The Variables panel: required flags, sample values and descriptions."/>
+<ul>
+  <li>Open <b>Variables</b> to set each one's <b>Required</b> flag, <b>Sample value</b> and <b>Description</b>.</li>
+  <li>A variable you use but have not listed shows <code>used in the content; added as required on save</code>.</li>
+  <li>The preview warns <b>Missing:</b> for a required value with no sample, and <b>Not used by the template:</b> for a sample nothing uses.</li>
+  <li>Built-in variables need no declaring: <code>CompanyName</code>, <code>TenantName</code>, <code>RecipientName</code>, <code>UnsubscribeUrl</code>, <code>CurrentDate</code>.</li>
+  <li>Open <b>Syntax help</b> for the filters and blocks. <x to="app-syntax"/> lists them all.</li>
+</ul>
+
+<h3 id="sec-t-test" data-ix="Test send">Sending a test</h3>
+<div class="who"><b>Who can do this:</b> anyone who can edit templates. Delivering a real test of an active version also needs the right to send, which platform, tenant, company and application administrators have. A template designer gets <code>You do not have access to this resource.</code></div>
+<ol class="steps">
+  <li>Select <b>More actions</b> (⋮), then <b>Test send</b>.</li>
+  <li>Choose the <b>Company</b>, <b>Application</b> and <b>Version</b>.</li>
+  <li>Enter the test address, which depends on the channel: <b>Email</b>, <b>Mobile (E.164)</b>, <b>WhatsApp (E.164)</b> or <b>User id</b>.</li>
+  <li>Check <b>Variables (JSON)</b>, then select <b>Send test</b>.</li>
+</ol>
+<p>Only the active version is delivered. For any other version the dialog says <code>Not active: a rendered preview is returned instead of a delivery.</code> and shows the result. For an active version it shows <code>Accepted as notification …</code> and the delivery's status.</p>
+<fig src="dialog-test-send-active.jpg" w="72" cap="A test of the active version, accepted for delivery."/>
+
+<h3 id="sec-t-flow" data-ix="Submit|Approve|Activate|Reject template">Submitting, approving and activating</h3>
+<div class="tw"><table>
+<thead><tr><th style="width:18%">Who</th><th>Step</th><th style="width:22%">Status afterwards</th></tr></thead>
+<tbody>
+<tr><td>Designer</td><td>Saves, then selects <b>Submit</b> and confirms. The version becomes read-only.</td><td><st>In review</st></td></tr>
+<tr><td>Approver</td><td>Selects <b>Approve</b> on the <b>Versions</b> tab or the <b>Approvals</b> screen, and confirms.</td><td><st>Active</st></td></tr>
+<tr><td>Approver</td><td>Or selects <b>Reject</b> and enters a reason.</td><td><st>Rejected</st></td></tr>
+<tr><td>Designer</td><td>Sees the reason at the top of the editor. Saving turns it back into a draft: fix it and submit again.</td><td><st>Draft</st></td></tr>
+</tbody></table></div>
+<aside class="note"><p>You cannot approve a version you created or submitted. The buttons are switched off, with the reason <code>Maker-checker: you created or submitted this version</code>.</p></aside>
+<aside class="note"><p>Approving always activates the version as well, so you will rarely see <st>Approved</st> in normal work.</p></aside>
+<fig src="template-versions.jpg" cap="The Versions tab, with one version's content open. Every version stays on record."/>
+<p>The <b>Versions</b> tab lists who created, submitted and approved each version. Select <b>View</b> to read its content. People without user-management rights, such as template approvers, see an internal id in place of the person's name.</p>
+
+<h3 id="sec-t-rollback" data-ix="Roll back|Retire">Rolling back or retiring</h3>
+<div class="who"><b>Who can do this:</b> template approvers and platform, tenant and company administrators.</div>
+<h4 id="task-rollback">To roll back to an earlier version</h4>
+<ol class="steps">
+  <li>Open the template's <b>Versions</b> tab.</li>
+  <li>On the earlier <st>Retired</st> version, select <b>Roll back</b>. An <st>Approved</st> version shows <b>Activate</b> instead.</li>
+  <li>Select <b>Activate</b> to confirm. The current version is retired, and new notifications use the one you chose.</li>
+</ol>
+<p>Past deliveries are not changed: each records the version it used.</p>
+<h4 id="task-retire">To retire a template</h4>
+<ol class="steps">
+  <li>Select <b>More actions</b> (⋮), then <b>Retire template</b>.</li>
+  <li>Select <b>Retire</b> to confirm.</li>
+</ol>
+<aside class="warn"><p>Notifications that use a retired template fail until a version is activated again. Check that no rule, schedule or application still uses it. To bring it back, use <b>Roll back</b> on the <b>Versions</b> tab.</p></aside>
+
+<h3 id="sec-t-clone" data-ix="Clone|Translation|Locale">Cloning for a translation</h3>
+<p>Translations are separate templates with the same code and a different locale. Cloning is also how you make a company or application override.</p>
+<ol class="steps">
+  <li>Open the template, then select <b>More actions</b> (⋮), <b>Clone / translate</b>.</li>
+  <li>Change the <b>Locale</b>, such as <code>hi</code>, and the <b>Name</b>. For an override, choose a narrower <b>Company</b> or <b>Application</b>.</li>
+  <li>Select <b>Clone</b>. A new draft opens. Translate it, then submit it for approval as usual.</li>
+</ol>
+
+<h3 id="sec-t-types" data-ix="Notification types|Mandatory|Sensitive">Managing notification types</h3>
+<p>A notification type names a kind of message and sets its defaults. Select <b>Notification types</b> at the top of the screen.</p>
+<ol class="steps">
+  <li>To change one, select its row. To add one, select <b>New</b>.</li>
+  <li>Fill in the <b>Tenant</b>, <b>Application (optional)</b>, <b>Code</b>, <b>Name</b> and <b>Category</b>.</li>
+  <li>Choose the <b>Message class</b>, <b>Default channels</b>, <b>Default template code</b> and <b>Default priority</b>.</li>
+  <li>Tick the options you need, then select <b>Create</b> or <b>Save</b>.</li>
+</ol>
+<div class="tw"><table>
+<thead><tr><th style="width:38%">Option</th><th>Effect</th></tr></thead>
+<tbody>
+<tr><td><b>Mandatory (ignores opt-outs)</b></td><td>Transactional messages of this type go out even if the recipient turned the channel off.</td></tr>
+<tr><td><b>Sensitive (codes masked in logs)</b></td><td>For one-time codes and the like. AI agents cannot send these types.</td></tr>
+<tr><td><b>AI agents may send</b></td><td>Lets a connected AI agent request this type.</td></tr>
+<tr><td><b>AI sends need human approval</b></td><td>Each AI request waits in <b>Approvals</b>.</td></tr>
+</tbody></table></div>
+<fig src="dialog-notification-types.jpg" cap="The Notification types dialog."/>
+
+<h3 id="sec-t-sms" data-ix="SMS template|DLT|Segments">SMS templates and DLT</h3>
+<p>The editor shows the encoding and length as you type, for example <code>GSM-7 · 123 chars · 1 segment (160/segment)</code>. The figure turns red above three segments. Characters outside the GSM-7 set switch the message to UCS-2, which fits only 70 characters per segment, or 67 when split. The preview shows the exact count once variables are filled in.</p>
+<p>For India, enter the DLT content template id in <b>DLT template id (India)</b>. The rendered text must match the registered template exactly. The DLT entity id goes on the sender identity (<x to="sec-p-sender"/>).</p>
+<fig src="template-sms.jpg" cap="An SMS template, with the segment counter and DLT template id."/>
+
+<h3 id="sec-t-wa" data-ix="WhatsApp template|Submit to WhatsApp">WhatsApp templates</h3>
+<p>Messages your business starts on WhatsApp must use a template approved by Meta. Write the body with normal variables: the hub converts them to WhatsApp's numbered placeholders.</p>
+<ol class="steps">
+  <li>Under <b>WhatsApp provider template</b>, enter the <b>Provider template name</b> in lower case with underscores, such as <code>invoice_created_v1</code>, and the <b>Language</b>, such as <code>en_US</code>.</li>
+  <li>Choose the <b>Category</b>: <b>Utility</b>, <b>Marketing</b> or <b>Authentication</b>.</li>
+  <li>Optionally set a <b>Header</b> (<b>Text</b>, <b>Image</b>, <b>Document</b> or <b>Video</b>; media headers need a <b>Media URL variable</b>), a <b>Footer</b>, and up to ten buttons: <b>Quick reply</b>, <b>URL</b> or <b>Phone</b>.</li>
+  <li>Select <b>Save draft</b>.</li>
+  <li>Select <b>More actions</b> (⋮), then <b>Submit to WhatsApp</b>. Choose the <b>WhatsApp provider account</b> and <b>Version</b>, then <b>Submit</b>. The result appears on the <b>Versions</b> tab as <b>WA:</b> and the status.</li>
+</ol>
+<fig src="template-whatsapp.jpg" cap="A WhatsApp template with header, footer and a quick-reply button."/>
+<aside class="note"><p><b>Submit to WhatsApp</b> needs a role that can see providers. For a template designer the provider list is empty, so ask an administrator to submit it. A Mock provider answers <code>The provider account does not support template submission.</code></p></aside>
+
+<h2 id="ch-rules" data-ix="Rule designer|Rules|Business events|Conditions">Rule designer</h2>
+<p class="lead">Rules let your applications report what happened, such as “payment overdue”, and leave the hub to decide who hears about it and how. Each rule reads: when this event happens, and these conditions are true, tell these recipients on these channels.</p>
+<div class="who"><b>Who can do this:</b> platform, tenant, company and application administrators change rules. Template designers and auditors can read rules, and can run a simulation.</div>
+<fig src="rule-existing.jpg" cap="The Rule designer: rules grouped by event on the left, the selected rule on the right."/>
+<h3 id="sec-r-create" data-ix="New rule">Creating a rule</h3>
+<ol class="steps">
+  <li>Select <b>New rule</b>, or open a similar rule and select <b>Duplicate</b>. A copy starts disabled, with <code>(copy)</code> in its name.</li>
+  <li>Set the <b>Tenant</b>, <b>Company</b> and <b>Application</b> the rule covers.</li>
+  <li>Enter a <b>Name</b> and the <b>Event type</b>, such as <code>payment.overdue</code>. Suggestions appear as you type.</li>
+  <li>Choose a <b>Notification type</b>, and set <b>Order (lower runs first)</b>.</li>
+  <li>Leave <b>Enabled</b> on. Tick <b>Stop evaluating later rules when this one matches</b> if this rule should be the last one to run.</li>
+  <li>Add conditions, recipients and channel actions as described below, then select <b>Save</b>.</li>
+</ol>
+<fig src="rule-designer-nested.jpg" cap="A rule with nested conditions: at least 7 days overdue, and either a large amount or a gold or platinum customer."/>
+<aside class="note"><p>A rule cannot be saved without a name, event type and template. The message is <code>The rule is invalid. Name is required. Event type is required. Every action needs a template code.</code></p></aside>
+
+<h3 id="sec-r-cond" data-ix="Conditions|Nested conditions">Building conditions</h3>
+<p>Conditions decide whether the rule fires. With none, it shows <code>No conditions: always matches</code>. A summary at the top of the panel reads the logic back in one line, such as <code>payload.DaysOverdue ≥ 7 AND (payload.AmountDue &gt; 20000 OR payload.customer.tier in [gold, platinum])</code>.</p>
+<ol class="steps">
+  <li>Choose <b>ALL (AND)</b> or <b>ANY (OR)</b> for the group.</li>
+  <li>Select <b>Condition</b>. Enter the <b>Field</b>, such as <code>payload.DaysOverdue</code>, choose the <b>Comparison</b>, and enter the <b>Value</b>.</li>
+  <li>Select <b>Group</b> to nest another AND/OR group. Groups can go up to ten levels deep.</li>
+</ol>
+<div class="tw"><table>
+<thead><tr><th style="width:30%">Comparisons</th><th>Notes</th></tr></thead>
+<tbody>
+<tr><td>equals, not equal, greater than, greater or equal, less than, less or equal</td><td>Numbers and <code>true</code>/<code>false</code> compare by type. Put text in quotes to force it, such as <code>"007"</code>.</td></tr>
+<tr><td>contains, does not contain, starts with, ends with</td><td>For text.</td></tr>
+<tr><td>is one of, is none of</td><td>Values are comma-separated, such as <code>gold, platinum</code>.</td></tr>
+<tr><td>exists, does not exist, is empty, is not empty</td><td>No value needed.</td></tr>
+</tbody></table></div>
+<p>Field paths are dot-separated and ignore case, for example <code>payload.customer.tier</code> or <code>payload.items.0.sku</code>.</p>
+
+<h3 id="sec-r-recip">Choosing recipients and channels</h3>
+<div class="tw"><table>
+<thead><tr><th style="width:30%">Recipient source</th><th>Then enter</th></tr></thead>
+<tbody>
+<tr><td><b>From the event payload</b></td><td><b>Payload path</b>: an object or list holding <code>name</code>, <code>email</code>, <code>mobile</code>, <code>whatsApp</code> or <code>userId</code>, such as <code>customer</code>.</td></tr>
+<tr><td><b>Specific users</b></td><td><b>User ids (comma-separated)</b>.</td></tr>
+<tr><td><b>Users with roles</b></td><td><b>Roles (comma-separated)</b>, such as <code>Manager, StoreKeeper</code>. These are the roles held by contacts, not console roles.</td></tr>
+<tr><td><b>Recipient group</b></td><td><b>Group</b>, from <x to="sec-groups"/>.</td></tr>
+<tr><td><b>All company users</b></td><td>Nothing more.</td></tr>
+</tbody></table></div>
+<p>Under <b>Channel actions</b>, each line sets a <b>Channel</b> and <b>Template</b>. Select <b>Action</b> to add another. Set <b>Fallback</b> to try a second channel when the first fails, expires or is suppressed, with a <b>Fallback template</b> or <b>Same code</b>.</p>
+
+<h3 id="sec-r-adv" data-ix="Escalation|Retry policy|Delay">Priority, retry, escalation and quiet hours</h3>
+<p>Open these panels under the channel actions when you need them.</p>
+<fig src="rule-actions.jpg" w="72" cap="Recipients, a channel action with an SMS fallback, and the three optional panels opened."/>
+<div class="tw"><table>
+<thead><tr><th style="width:24%">Panel</th><th>Settings</th></tr></thead>
+<tbody>
+<tr><th>Priority, delay &amp; retry</th><td><b>Priority</b> overrides the type's default. <b>Delay (seconds)</b> holds the message back. <b>Custom retry policy</b> sets <b>Max attempts</b>, <b>Initial delay (s)</b> and <b>Max delay (s)</b>.</td></tr>
+<tr><th>Escalation</th><td>Tick <b>Escalate when the message is not acted on</b>, then set <b>After (minutes)</b>, <b>Unless status reached</b>, <b>Escalation channel</b> and <b>Template</b>. For example: send an email after 30 minutes unless the WhatsApp was read.</td></tr>
+<tr><th>Quiet hours</th><td>Tick <b>Override quiet hours for this rule</b>, then set <b>Start</b>, <b>End</b>, <b>Applies to</b> and <b>Channels (empty = all except in-app)</b>, in the recipient's local time. Messages in the window wait until it ends. Critical messages and critical priority are never delayed.</td></tr>
+</tbody></table></div>
+
+<h3 id="sec-r-sim" data-ix="Simulation">Simulating a rule</h3>
+<p>A simulation shows exactly what would happen. Nothing is sent.</p>
+<ol class="steps">
+  <li>Save the rule. Simulation uses saved rules: <code>save first to test your edits</code>.</li>
+  <li>Under <b>Simulation</b>, choose the <b>Company</b> and <b>Application</b>.</li>
+  <li>Edit <b>Sample payload (JSON)</b> to resemble a real event.</li>
+  <li>Tick <b>Only this rule (saved version, even if disabled)</b> to test it alone, or leave it clear to see every rule for the event.</li>
+  <li>Select <b>Run simulation</b>.</li>
+</ol>
+<fig src="rule-simulation-consent.jpg" w="74" cap="A simulation: the rule matched, but this customer has no WhatsApp opt-in."/>
+<p><b>Rules evaluated</b> shows <st>Matched</st> or <st>No match</st> for each rule. <b>Notifications that would be created</b> lists each delivery, the consent decision, the send time and the rendered text. In the example above, a real event would then go by SMS through the fallback.</p>
+<aside class="tip"><p>Before switching on a rule, simulate three payloads: one that should match, one that should not, and one customer with no consent.</p></aside>
+<p>To remove a rule, open it and select <b>Delete</b>. Events no longer trigger it.</p>
+
+<h2 id="ch-campaigns" data-ix="Campaigns|Campaign manager">Campaigns</h2>
+<p class="lead">A campaign sends one message to many people at a controlled pace. A manager prepares it, and someone else approves it.</p>
+<div class="who"><b>Who can do this:</b> campaign managers and platform, tenant and company administrators prepare campaigns. Administrators at those levels approve them. Operators, auditors and application administrators can look.</div>
+<fig src="campaigns.jpg" cap="Campaign manager. Tabs filter by status: All, Draft, Pending approval, Scheduled, Running, Paused, Completed, Cancelled."/>
+<h3 id="sec-c-new" data-ix="New campaign|Throttle|Segment">Creating a campaign</h3>
+<ol class="steps">
+  <li>Select <b>New campaign</b>.</li>
+  <li>Choose the <b>Company</b> and <b>Application</b>, and enter a <b>Name</b>.</li>
+  <li>Choose the <b>Channels</b> and <b>Template code</b>. The list shows active templates for the channels you chose, and each channel needs one.</li>
+  <li>Choose the <b>Notification type</b> and <b>Message class</b>. <b>Promotional</b> needs marketing consent and honours unsubscribes.</li>
+  <li>Set <b>Schedule (local time, optional)</b>. Leave it empty to start on approval.</li>
+  <li>Set <b>Throttle (messages/minute)</b>. The default is 600.</li>
+  <li>Choose who receives it: <b>Recipient groups</b>, a <b>Segment</b>, an imported list, or a mix.</li>
+  <li>Enter <b>Template variables (one per line: Name=value)</b>. Imported columns override these for each recipient.</li>
+  <li>Select <b>Save draft</b>.</li>
+</ol>
+<fig src="campaign-new-dialog.jpg" w="78" cap="The New campaign dialog, with a segment that selects customers."/>
+<aside class="warn"><p>Reopening a draft with <b>Edit</b> does not show its <b>Template variables</b>, <b>Recipient groups</b>, <b>Segment</b> or <b>Notification type</b>, and saving clears them. If you edit a draft, enter them again before you select <b>Save draft</b>. Recipients you imported are not affected.</p></aside>
+
+<h3 id="sec-c-import" data-ix="Import recipients|CSV import">Importing recipients</h3>
+<ol class="steps">
+  <li>Prepare a <code>.csv</code> or <code>.xlsx</code> file with the columns <code>email</code>, <code>mobile</code>, <code>name</code> and <code>externalId</code>, plus a column for each template variable.</li>
+  <li>Open the draft campaign and select <b>Import recipients</b>.</li>
+  <li>Choose the file. The result appears at the top of the campaign, for example <code>Import: 5 imported, 1 rejected.</code>, with each bad row listed.</li>
+  <li>Fix the rejected rows and import them in a new file. Imported rows are added to the list.</li>
+</ol>
+<pre><code>email,mobile,name,externalId,CustomerName
+anita@example.com,+919800000101,Anita Rao,C-2001,Anita Rao
+bharat@example.com,+919800000102,Bharat Shah,C-2002,Bharat Shah</code></pre>
+<fig src="campaign-import-result.jpg" cap="An import result: one bad email was rejected and the other rows are listed as recipients."/>
+<aside class="note"><p>Each row needs an <code>email</code>, <code>mobile</code> or <code>externalId</code>. A row with only an <code>externalId</code> is accepted, and is <st>Skipped</st> when the campaign runs if it has no usable address. Row numbers count the heading as row 1. A second import adds to the list; repeats in the same file are rejected as <code>duplicate recipient</code>.</p></aside>
+
+<h3 id="sec-c-test">Testing a campaign</h3>
+<p>Administrators can select <b>Test send</b> on a draft and enter one <b>Recipient email or mobile (E.164)</b>. The result appears on the campaign as <code>Test accepted as …</code>. A campaign manager gets <code>You do not have access to this resource.</code>, so ask an administrator to send the test.</p>
+<p>The test uses the campaign's <b>Template variables</b> and has no import columns to draw on. If the template needs a value such as <code>CustomerName</code>, add it there, or the test fails with <code>The notification could not be rendered.</code> Consent rules apply to tests too: a promotional test to an address with no marketing consent is accepted but shows <st>Suppressed</st>.</p>
+
+<h3 id="sec-c-submit" data-ix="Submit campaign|Approve campaign">Submitting and approving</h3>
+<ol class="steps">
+  <li>The manager selects <b>Submit</b>, then <b>Confirm</b>. The campaign becomes <st>Pending approval</st>. A campaign with no audience is refused: <code>Add recipients (import, groups or a segment) before submitting.</code></li>
+  <li>An approver selects <b>Approve</b> on the campaign, or uses <b>Approvals</b> (<x to="sec-approve"/>).</li>
+  <li>With a schedule, it waits as <st>Scheduled</st>. Without one, it starts shortly after approval and shows <st>Running</st>.</li>
+</ol>
+<p>You cannot approve a campaign you created: <code>Maker-checker: you created this campaign</code>.</p>
+
+<h3 id="sec-c-run" data-ix="Pause|Resume|Cancel campaign|Emergency hold">Following and controlling a campaign</h3>
+<fig src="campaign-detail.jpg" cap="A running campaign, with progress, recipients and controls."/>
+<p>Select a campaign to see progress, recipient and delivery counts, cost, and a table of recipients you can filter by <b>Status</b>: <st>Pending</st> <st>Queued</st> <st>Skipped</st> <st>Failed</st>. The <b>Error</b> column gives the reason, such as <code>No marketing consent recorded for this channel.</code> Select <b>Open deliveries in explorer</b> to see each delivery.</p>
+<div class="tw"><table>
+<thead><tr><th style="width:21%">Button</th><th>What it does</th></tr></thead>
+<tbody>
+<tr><td><b>Pause</b>, <b>Resume</b></td><td>Stops and restarts sending at once. Appears while the campaign is <st>Running</st> or <st>Paused</st>.</td></tr>
+<tr><td><b>Emergency hold</b>, <b>Lift hold</b></td><td>Holds pending messages, not lost, and needs a <b>Reason</b>. The campaign shows <st>Suspended</st> beside its status.</td></tr>
+<tr><td><b>Cancel</b></td><td>Pending deliveries are cancelled. This cannot be undone.</td></tr>
+</tbody></table></div>
+<aside class="note"><p>A small campaign can finish in seconds, before you can pause it. Set a low throttle if you want time to watch one. If a campaign finishes while on hold, it keeps showing <st>Suspended</st>, because <b>Lift hold</b> is not offered on a completed campaign. This has no effect on anything.</p></aside>
+
+<h2 id="ch-recipients" data-ix="Recipients|Contacts">Recipients</h2>
+<p class="lead">This screen holds who you can reach and what they agreed to: contacts, preferences, consent, suppressions and groups.</p>
+<div class="who"><b>Who can do this:</b> campaign managers and platform, tenant, company and application administrators change recipients. Auditors read with addresses masked. Operators, designers and approvers do not see this screen.</div>
+<fig src="recipients.jpg" cap="The Contacts tab."/>
+<h3 id="sec-contacts" data-ix="Add contact|Edit contact">Adding and editing contacts</h3>
+<p>Your applications normally keep contacts up to date. Use this screen for corrections and one-off additions.</p>
+<ol class="steps">
+  <li>On <b>Contacts</b>, select <b>Add contact</b>.</li>
+  <li>Choose the <b>Company</b> and <b>Kind</b>: <b>User</b>, <b>Customer</b> or <b>Other</b>.</li>
+  <li>Enter the <b>External id</b> your application uses, and the <b>Name</b>.</li>
+  <li>Enter the <b>Email</b>, <b>Mobile (E.164)</b> and <b>WhatsApp (E.164)</b>. E.164 means the full international form, such as <code>+919845012345</code>.</li>
+  <li>Enter the <b>Time zone</b>, <b>Locale</b>, <b>Country</b> and <b>Roles (comma-separated)</b> if you know them. Then select <b>Save</b>.</li>
+</ol>
+<p>To change a contact, use the pencil icon. <b>Company</b>, <b>Kind</b> and <b>External id</b> are fixed. Stored addresses appear as hints: leave a field empty to keep its value. Find contacts with <b>Search</b> (id, name, email or mobile, then Enter), <b>Company</b> and <b>Kind</b>.</p>
+
+<h3 id="sec-erase" data-ix="Erase personal data|Right to erasure|Erase contact">Erasing a person's data</h3>
+<ol class="steps">
+  <li>On the contact's row, select the <b>Erase personal data</b> icon.</li>
+  <li>Read the warning, then tick <b>I understand this is permanent (right to erasure).</b></li>
+  <li>Select <b>Erase</b>. You see <code>Personal data erased</code>.</li>
+</ol>
+<aside class="warn"><p>This cannot be undone. Name, email, phone numbers and attributes are removed, addresses in delivery history are replaced by hashes, message bodies are purged and devices are unregistered. The contact also disappears from the list.</p></aside>
+
+<h3 id="sec-prefs" data-ix="Preferences|Consent|Record consent|Withdraw consent">Preferences and consent</h3>
+<fig src="recipients-preferences.jpg" cap="Preferences &amp; consent for one contact."/>
+<h4 id="task-prefs">To change a contact's preferences</h4>
+<ol class="steps">
+  <li>On <b>Contacts</b>, select the row or its <b>Preferences and consent</b> icon. The <b>Preferences &amp; consent</b> tab opens.</li>
+  <li>Use the switches under <b>Channel preferences</b>. Category <code>*</code> applies to every category. A specific category beats <code>*</code>.</li>
+  <li>To add a category, enter it in <b>Add category</b> and select <b>Add</b>.</li>
+  <li>Select <b>Save preferences</b>.</li>
+</ol>
+<h4 id="task-consent">To record consent or a withdrawal</h4>
+<ol class="steps">
+  <li>Under <b>Record consent</b>, choose the <b>Channel</b>.</li>
+  <li>Choose the <b>Purpose</b>: <b>Channel opt-in</b> (needed for WhatsApp) or <b>Marketing</b>.</li>
+  <li>Choose the <b>Status</b>: <b>Granted</b> or <b>Withdrawn</b>.</li>
+  <li>Enter the <b>Source</b>, such as <code>web-form</code>, and the <b>Evidence</b>, such as a form or call reference.</li>
+  <li>Select <b>Record</b>.</li>
+</ol>
+<p><b>Consent (latest per channel and purpose)</b> shows what applies now. <b>Consent history (append-only)</b> keeps every change, and cannot be edited.</p>
+
+<h3 id="sec-consent-rules" data-ix="Consent rules|Opt-out|Unsubscribe">The consent rules</h3>
+<p>The hub applies these rules to every message, and checks them again at send time, so an opt-out is honoured even for a message accepted earlier.</p>
+<div class="tw"><table>
+<thead><tr><th>Class</th><th>Preferences</th><th>Marketing consent</th><th>WhatsApp opt-in</th><th>Unsubscribe</th><th>Hard bounce or invalid address</th><th>Complaint or opt-out</th></tr></thead>
+<tbody>
+<tr><th>Transactional</th><td>Honoured, unless the type is mandatory</td><td>Not needed</td><td>Required</td><td>Ignored</td><td>Blocks</td><td>Blocks</td></tr>
+<tr><th>Promotional</th><td>Honoured</td><td>Required, if the tenant requires it</td><td>Required</td><td>Blocks</td><td>Blocks</td><td>Blocks</td></tr>
+<tr><th>Critical</th><td>Ignored</td><td>Not needed</td><td>Required</td><td>Ignored</td><td>Blocks</td><td>Ignored</td></tr>
+</tbody></table></div>
+<p>A blocked message shows <st>Suppressed</st> in the explorer, with one of these reasons:</p>
+<div class="tw"><table>
+<thead><tr><th style="width:38%">Reason shown</th><th>What to do</th></tr></thead>
+<tbody>
+<tr><td><code>whatsapp_no_opt_in</code></td><td>Record a WhatsApp <b>Channel opt-in</b> if the person agreed.</td></tr>
+<tr><td><code>marketing_consent_missing</code></td><td>Record <b>Marketing</b> consent for that channel if the person agreed.</td></tr>
+<tr><td><code>marketing_consent_withdrawn</code></td><td>The person withdrew. Do not send, unless they grant it again.</td></tr>
+<tr><td><code>preference_opt_out</code></td><td>The person switched the channel off for that category.</td></tr>
+<tr><td><code>suppressed_…</code></td><td>The address is on the suppression list. See below.</td></tr>
+</tbody></table></div>
+
+<h3 id="sec-supp" data-ix="Suppressions|Add suppression|Remove suppression|Hard bounce">Suppressions</h3>
+<p>A suppression blocks an address, and the hub adds most of them itself when a provider reports a hard bounce, complaint or invalid address. Each one blocks according to the table above.</p>
+<fig src="recipients-suppressions.jpg" cap="The Suppressions tab."/>
+<h4 id="task-supp-add">To suppress an address</h4>
+<ol class="steps">
+  <li>Open <b>Suppressions</b>. Under <b>Add suppression</b>, choose the <b>Tenant</b> and, if it applies, the <b>Company (optional)</b>.</li>
+  <li>Choose the <b>Channel</b>, enter the <b>Address</b>, choose the <b>Reason</b>, and add a <b>Note</b>.</li>
+  <li>Select <b>Suppress address</b>.</li>
+</ol>
+<aside class="note"><p>Only <b>Unsubscribe</b> and <b>Opt out</b> stay limited to the company you chose. <b>Manual</b>, <b>Hard bounce</b>, <b>Complaint</b> and <b>Invalid address</b> always apply to the whole tenant, even if you pick a company, and the <b>Scope</b> column shows the tenant.</p></aside>
+<h4 id="task-supp-remove">To remove a suppression</h4>
+<ol class="steps">
+  <li>Find it with <b>Channel</b> and <b>Address contains</b> (press Enter).</li>
+  <li>Select the delete icon, then <b>Remove</b>. Messages to that address are allowed again.</li>
+</ol>
+
+<h3 id="sec-groups" data-ix="Groups|Dynamic group|Static group">Groups</h3>
+<p>Groups name a set of contacts for rules and campaigns. A <b>Static</b> group lists its members. A <b>Dynamic</b> group works them out from a filter each time.</p>
+<fig src="recipients-groups-new.jpg" cap="Creating a dynamic group."/>
+<ol class="steps">
+  <li>Open <b>Groups</b>. Under <b>New group</b>, choose the <b>Company</b>, then enter a <b>Name</b> and <b>Description</b>.</li>
+  <li>For a static group, choose the <b>Members</b>. For a dynamic group, switch on <b>Dynamic (membership from a contact filter)</b> and build the filter as for rule conditions. Fields include <code>kind</code>, <code>externalId</code>, <code>name</code>, <code>email</code>, <code>mobile</code>, <code>country</code>, <code>locale</code>, <code>roles</code> and <code>attributes.&lt;name&gt;</code>.</li>
+  <li>Select <b>Create group</b>. Select a group in the list to see its members.</li>
+</ol>
+
+<h2 id="ch-schedules" data-ix="Schedules|Holiday calendars|Cron|Reminder sequence|Working days">Schedules and holiday calendars</h2>
+<p class="lead">Schedules send a notification on a repeating pattern or as a series of reminders, in a time zone you choose, and can skip weekends and holidays.</p>
+<div class="who"><b>Who can do this:</b> platform, tenant, company and application administrators create schedules. Campaign managers, operators and auditors can look. Calendars need tenant or platform administrators.</div>
+<fig src="schedules-new.jpg" cap="The Schedules screen, with a new recurring schedule filled in."/>
+<h3 id="sec-s-new">Creating a schedule</h3>
+<ol class="steps">
+  <li>Under <b>New schedule</b>, enter a <b>Name</b>, and choose the <b>Company</b>, <b>Application</b> and <b>Time zone</b>.</li>
+  <li>Choose the kind:
+    <ul>
+      <li><b>Recurring (cron)</b>: enter a <b>Cron expression</b> in the order minute, hour, day, month, weekday. <code>0 9 1 * *</code> means 09:00 on the first of each month, and <code>0 9 * * MON-FRI</code> means 09:00 on weekdays.</li>
+      <li><b>Reminder sequence</b>: enter <b>Offsets in minutes</b>. <code>0, 1440, 4320</code> sends at the start, a day later and three days later.</li>
+    </ul>
+  </li>
+  <li>Optionally set <b>Start</b>, <b>End (optional)</b> and <b>Max runs (optional)</b>.</li>
+  <li>To skip weekends, tick <b>Working days only (Mon–Fri)</b>. To skip holidays as well, choose a <b>Holiday calendar</b>.</li>
+  <li>Under <b>Notification</b>, choose the <b>Notification type</b> or enter a <b>Template code (optional)</b>, the <b>Channels (empty = type default)</b>, and at least one of <b>Recipient email</b>, <b>Recipient mobile</b> and <b>Recipient user id</b>.</li>
+  <li>Enter the <b>Variables (JSON)</b>, then select <b>Create schedule</b>. The hub checks it with a dry run, then shows the next run.</li>
+</ol>
+<aside class="note"><p>A holiday calendar has an effect only when <b>Working days only (Mon–Fri)</b> is ticked.</p></aside>
+<div class="tw"><table>
+<thead><tr><th style="width:50%">What you see</th><th>What to do</th></tr></thead>
+<tbody>
+<tr><td><code>Invalid cron expression: …</code></td><td>Check the five fields and their order.</td></tr>
+<tr><td><code>None of the requested channels could be addressed for the recipient(s).</code></td><td>Add a recipient address that suits the channels.</td></tr>
+</tbody></table></div>
+<h3 id="sec-s-manage">Managing schedules</h3>
+<p>The table shows the pattern, time zone, next and last run, and the number of runs. Use <b>Enabled</b> to pause and restart a schedule. The braces icon (<b>View request</b>) shows what will be sent. The delete icon removes it, and future runs are cancelled.</p>
+
+<h3 id="sec-holidays" data-ix="New calendar">Creating a holiday calendar</h3>
+<ol class="steps">
+  <li>Open <b>Holiday calendars</b>.</li>
+  <li>Under <b>New calendar</b>, enter the <b>Name</b> and <b>Country</b>, and choose the <b>Tenant</b>. Only platform administrators can choose <b>Platform-wide</b>.</li>
+  <li>Enter <b>Dates (one per line: yyyy-mm-dd Name)</b>, such as <code>2027-01-26 Republic Day</code>.</li>
+  <li>Select <b>Create calendar</b>.</li>
+</ol>
+<p>Lines the hub cannot read are listed as <code>Unrecognised lines: …</code>, and the calendar is not created. The console has no button to change or delete a calendar, or to edit a schedule, so check the dates first. To correct one, create a new calendar, delete the schedule and create it again.</p>
+<fig src="holidays.jpg" w="74" cap="A holiday calendar."/>
+</section>
