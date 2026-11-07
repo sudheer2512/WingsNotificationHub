@@ -658,6 +658,8 @@ public sealed class Suppression : ITenantScoped
     /// <summary>Only blocks Promotional messages (unsubscribe), otherwise all non-critical / all.</summary>
     public bool PromotionalOnly { get; set; }
     public string? Source { get; set; }
+    /// <summary>Why an operator added it.</summary>
+    public string? Note { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? ExpiresAt { get; set; }
 }

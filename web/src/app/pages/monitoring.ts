@@ -62,7 +62,7 @@ import { confirmDialog } from '../shared/widgets';
             <div class="alert-row">
               <app-chip [value]="a.severity" />
               <div style="flex:1;min-width:0"><div>{{ a.message }}</div><div class="small muted">{{ a.source }} · {{ a.createdAt | ago }}@if (a.tenantId) { · {{ lookups.tenantName(a.tenantId) }} }</div></div>
-              <button mat-stroked-button (click)="ack(a.id)"><mat-icon>done</mat-icon>Acknowledge</button>
+              @if (auth.can('AcknowledgeAlerts')) { <button mat-stroked-button (click)="ack(a.id)"><mat-icon>done</mat-icon>Acknowledge</button> }
             </div>
           } @empty { <app-empty icon="task_alt" text="No open alerts" /> }
         </section>
@@ -95,7 +95,7 @@ import { confirmDialog } from '../shared/widgets';
             <tbody>@for (m of d.deadLetters; track m.id) {
               <tr><td><code>{{ m.queue }}</code></td><td>{{ m.type }}</td><td class="num">{{ m.dequeueCount }}</td><td class="small error" style="max-width:420px">{{ m.lastError ?? '—' }}</td>
                 <td class="small nowrap">{{ m.deadLetteredAt | dt }}</td>
-                <td>@if (canRequeue()) { <button mat-stroked-button (click)="requeue(m.id)"><mat-icon>replay</mat-icon>Requeue</button> }</td></tr>
+                <td>@if (d.canRequeue) { <button mat-stroked-button (click)="requeue(m.id)"><mat-icon>replay</mat-icon>Requeue</button> }</td></tr>
             } @empty { <tr><td colspan="6" class="muted">No dead letters</td></tr> }</tbody>
           </table></div>
         </section>
@@ -116,7 +116,6 @@ export class MonitoringPage implements OnInit {
   updated = signal<string | null>(null);
   showStopped = false;
 
-  canRequeue = computed(() => this.auth.isPlatformAdmin() || !!this.auth.me()?.grants.some(g => g.role === 'NotificationOperator'));
   queues = computed(() => Object.entries(this.data()?.queues ?? {}).map(([name, q]) => ({ name, ...q })));
   workers = () => (this.data()?.workers ?? []).filter(w => this.showStopped || w.status !== 'stopped');
   cards = computed(() => {

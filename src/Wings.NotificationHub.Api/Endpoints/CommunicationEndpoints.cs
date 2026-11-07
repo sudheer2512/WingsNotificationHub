@@ -65,7 +65,7 @@ public static class CommunicationEndpoints
             var query = db.ConversationThreads.AsNoTracking().Visible(caller.FilterFor(Permission.ViewInbox));
             if (channel is { } ch) query = query.Where(t => t.Channel == ch);
             if (unread == true) query = query.Where(t => t.UnreadCount > 0);
-            if (!string.IsNullOrWhiteSpace(q)) query = query.Where(t => t.ExternalAddress.Contains(q) || (t.ContactName != null && t.ContactName.Contains(q)));
+            if (!string.IsNullOrWhiteSpace(q)) query = query.Where(t => t.ExternalAddress.ToLower().Contains(q.ToLower()) || (t.ContactName != null && t.ContactName.ToLower().Contains(q.ToLower())));
             var rows = await query.OrderByDescending(t => t.LastMessageAt).Skip((page - 1) * 50).Take(50).ToListAsync(ctx.RequestAborted);
             var ids = rows.Select(r => r.Id).ToList();
             var last = await db.InboundMessages.AsNoTracking().Where(m => ids.Contains(m.ThreadId)).GroupBy(m => m.ThreadId)

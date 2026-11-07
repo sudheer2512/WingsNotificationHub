@@ -55,7 +55,7 @@ export interface Credential {
   revokedAt?: string | null; lastUsedAt?: string | null; createdBy?: string | null; createdAt: string;
 }
 export interface RoleAssignment { id: Uuid; userId: Uuid; role: string; tenantId?: Uuid | null; companyId?: Uuid | null; applicationId?: Uuid | null; channel?: Channel | null; }
-export interface AdminUser { id: Uuid; email: string; displayName: string; enabled: boolean; lastLoginAt?: string | null; external: boolean; roles: RoleAssignment[]; }
+export interface AdminUser { id: Uuid; email: string; displayName: string; enabled: boolean; lastLoginAt?: string | null; external: boolean; roles: RoleAssignment[]; canManage: boolean; }
 
 // ---- dashboard / monitoring ----
 export interface QueueStats { ready: number; inFlight: number; deadLettered: number; }
@@ -72,6 +72,7 @@ export interface Monitoring {
   transport: string; queues: Record<string, QueueStats>; outboxBacklog: number;
   workers: { worker: string; instance: string; status: string; processed: number; failed: number; lastError?: string | null; startedAt: string; lastHeartbeatAt: string }[];
   retries: number; awaitingOperator: number;
+  canRequeue: boolean;
   deadLetters: { id: Uuid; queue: string; type: string; dequeueCount: number; lastError?: string | null; deadLetteredAt: string; enqueuedAt: string }[];
   providerErrors24h: { providerAccountId?: Uuid | null; errorCode?: string | null; n: number }[];
   circuits: { providerAccountId: Uuid; failures: number; openUntil?: string | null }[];
@@ -127,7 +128,8 @@ export interface TemplateVersion {
   submittedBy?: string | null; submittedAt?: string | null; approvedBy?: string | null; approvedAt?: string | null; rejectionReason?: string | null;
   variables: TemplateVariable[];
 }
-export interface TemplateDetail { template: TemplateSummary; versions: TemplateVersion[]; }
+export interface TemplateDetail { template: TemplateSummary; versions: TemplateVersion[]; actors?: Record<string, string>; }
+export interface WhatsAppAccount { id: Uuid; name: string; providerType: string; }
 export interface TemplateVersionRequest {
   subject?: string | null; body: string; bodyFormat: BodyFormat; textBody?: string | null; components?: TemplateComponents | null;
   providerTemplateName?: string | null; providerTemplateLanguage?: string | null; providerCategory?: string | null; dltTemplateId?: string | null;
@@ -198,6 +200,10 @@ export interface Campaign {
   createdBy?: string | null; createdByName?: string | null; approvedBy?: string | null; approvedAt?: string | null; startedAt?: string | null;
   completedAt?: string | null; createdAt: string; recipients: Record<string, number>; deliveries: Record<string, number>; cost: number;
 }
+export interface CampaignDraft {
+  id: Uuid; companyId: Uuid; applicationId: Uuid; name: string; description?: string | null; channels: Channel[]; templateCode: string; notificationTypeCode?: string | null;
+  messageClass: MessageClass; groupIds?: Uuid[] | null; segment?: ConditionNode | null; variables?: Record<string, string> | null; scheduledAt?: string | null; throttlePerMinute: number;
+}
 export interface CampaignRecipient {
   id: Uuid; rowNumber: number; externalId?: string | null; name?: string | null; email?: string | null; mobile?: string | null; status: string;
   error?: string | null; notificationRequestId?: Uuid | null; processedAt?: string | null;
@@ -238,7 +244,7 @@ export interface Preferences {
   contactId: Uuid; externalId: string; preferences: { category: string; channel: Channel; enabled: boolean }[];
   consents: { id: Uuid; channel: Channel; purpose: string; status: string; source: string; evidence?: string | null; scope?: string | null; capturedAt: string }[];
 }
-export interface Suppression { id: Uuid; tenantId: Uuid; companyId?: Uuid | null; channel: Channel; address: string; reason: SuppressionReason; promotionalOnly: boolean; source?: string | null; createdAt: string; }
+export interface Suppression { id: Uuid; tenantId: Uuid; companyId?: Uuid | null; channel: Channel; address: string; reason: SuppressionReason; promotionalOnly: boolean; source?: string | null; note?: string | null; createdAt: string; }
 export interface Group { id: Uuid; companyId: Uuid; name: string; description?: string | null; dynamic: boolean; filter?: ConditionNode | null; members: number; }
 
 // ---- admin misc ----

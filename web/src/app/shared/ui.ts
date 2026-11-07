@@ -17,6 +17,12 @@ export function parseDate(iso: string | null | undefined): Date | null {
   return isNaN(d.getTime()) ? null : d;
 }
 
+/** A stored time as the value of an <input type="datetime-local">, in the viewer's own time zone. */
+export function toLocalInput(iso: string | null | undefined): string {
+  const d = parseDate(iso);
+  return d ? new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16) : '';
+}
+
 export function timeAgo(iso: string | null | undefined): string {
   const d = parseDate(iso);
   if (!d) return '—';

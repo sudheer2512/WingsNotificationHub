@@ -70,7 +70,7 @@ export function toRequest(m: EditorModel, channel: string): TemplateVersionReque
           @if (!canEdit()) { <div class="callout">Read-only: you can view templates but not edit them.</div> }
           @else if (baseVersion(); as bv) {
             @if (bv.status !== 'Draft' && bv.status !== 'Rejected') { <div class="callout">Editing starts from v{{ bv.versionNumber }} ({{ bv.status | human }}). Saving creates a new draft version; the active version keeps sending until a new one is approved.</div> }
-            @if (bv.status === 'Rejected') { <div class="callout bad">v{{ bv.versionNumber }} was rejected: {{ bv.rejectionReason || 'no reason given' }}. Saving turns it back into a draft.</div> }
+            @if (bv.status === 'Rejected') { <div class="callout bad">v{{ bv.versionNumber }} was rejected: {{ bv.rejectionReason || 'no reason given' }}<br>Saving turns it back into a draft.</div> }
           }
           @if (channel() === 'email') {
             <mat-form-field class="full"><mat-label>Subject</mat-label>
@@ -202,7 +202,7 @@ export function toRequest(m: EditorModel, channel: string): TemplateVersionReque
           </mat-accordion>
 
           @if (canEdit()) {
-            <mat-form-field class="full" style="margin-top:10px"><mat-label>Change note</mat-label><input matInput [(ngModel)]="m.changeNote" placeholder="What changed and why"></mat-form-field>
+            <mat-form-field class="full" style="margin-top:10px"><mat-label>Change note</mat-label><input matInput [(ngModel)]="m.changeNote" (ngModelChange)="touch()" placeholder="What changed and why"></mat-form-field>
           }
         </div>
 

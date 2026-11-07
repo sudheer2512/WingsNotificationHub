@@ -15,13 +15,13 @@ dotnet test tests/Wings.NotificationHub.IntegrationTests
   SSRF guard, CSV parsing, channel wire names; and provider adapters against HTTP doubles (Meta WhatsApp, Twilio,
   MSG91/DLT, generic HTTP SMS, FCM with service-account OAuth, Web Push with VAPID, Microsoft Graph sendMail): request
   URL/auth/payload shape and error-code → outcome mapping.
-* **Integration tests** (44) — `WebApplicationFactory` runs the real API **with all workers** (outbox relay, queue
+* **Integration tests** (65) — `WebApplicationFactory` runs the real API **with all workers** (outbox relay, queue
   consumers, scheduler, reconciliation, mock receipts) on a private SQLite database seeded with the demo data. Tests use
   the C# SDK, raw HTTP, SignalR and the database. Outbound webhooks go to an in-memory receiver that can be told to fail.
 * **Load test** — `tests/Wings.NotificationHub.LoadTests` (console; see below).
 * **Client SDK tests** — `clients/typescript` (`npm test`, 50 vitest tests: tokens, idempotency, retries, errors, webhook
   verification, inbox) and `clients/angular-inbox` (`npm test`, helper tests).
-* **Admin console tests** — `web/` (`npx ng test --watch=false`, 26 vitest tests: condition-builder model, error
+* **Admin console tests** — `web/` (`npx ng test --watch=false`, 28 vitest tests: condition-builder model, error
   interceptor, query mapping, variable extraction, SMS counter, holiday parsing). Every screen was also exercised manually
   in a browser against a seeded instance; not-yet-submitted forms are listed in the UI section of the final report.
 

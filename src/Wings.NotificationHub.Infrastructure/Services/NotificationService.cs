@@ -32,6 +32,8 @@ public sealed class AcceptOptions
     public Guid? ApprovedRequestId { get; init; }
     /// <summary>Skip saving (caller batches several acceptances into one unit of work).</summary>
     public bool Defer { get; init; }
+    /// <summary>What the caller must hold. Test sends go to one address and need the right to manage what is being tested, not general send rights.</summary>
+    public Permission RequiredPermission { get; init; } = Permission.SendNotifications;
 }
 
 /// <summary>
@@ -54,7 +56,7 @@ public sealed class NotificationService(
         opts ??= new AcceptOptions();
         using var activity = Telemetry.Source.StartActivity("notification.accept");
         var o = options.Value;
-        var ctx = await contexts.ResolveAsync(caller, req.ApplicationId, req.CompanyId, Permission.SendNotifications, Scopes.NotificationsSend, ct);
+        var ctx = await contexts.ResolveAsync(caller, req.ApplicationId, req.CompanyId, opts.RequiredPermission, Scopes.NotificationsSend, ct);
         activity?.SetTag("wnh.tenant", ctx.Tenant.Id).SetTag("wnh.application", ctx.Application.Code);
 
         // ── notification type, template, channels ──
@@ -403,7 +405,7 @@ public sealed class NotificationService(
         _ => "address",
     };
 
-    private static string Mask(ResolvedRecipient r) => r.UserId ?? r.CustomerId ?? (r.Email is not null ? Addressing.MaskEmail(r.Email) : r.Mobile is not null ? Addressing.MaskPhone(r.Mobile) : "?");
+    private static string Mask(ResolvedRecipient r) => r.UserId ?? r.CustomerId ?? (r.Email is not null ? Addressing.MaskEmail(r.Email) : r.Mobile is not null ? Addressing.MaskPhone(r.Mobile) : r.Name ?? "with no contact details");
 
     private static AppNotificationOptionsDto? MergeApp(AppNotificationOptionsDto? fromTemplate, AppNotificationOptionsDto? fromRequest)
     {

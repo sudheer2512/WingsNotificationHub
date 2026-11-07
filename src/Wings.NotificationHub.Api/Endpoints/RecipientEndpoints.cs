@@ -51,7 +51,7 @@ public static class RecipientEndpoints
             var query = db.RecipientContacts.AsNoTracking().Where(c => c.ErasedAt == null).Visible(caller.FilterFor(Permission.ViewContacts));
             if (companyId is { } cid) query = query.Where(c => c.CompanyId == cid);
             if (kind is { } k) query = query.Where(c => c.Kind == k);
-            if (!string.IsNullOrWhiteSpace(q)) query = query.Where(c => c.ExternalId.Contains(q) || (c.Name != null && c.Name.Contains(q)) || (c.Email != null && c.Email.Contains(q.ToLower())) || (c.Mobile != null && c.Mobile.Contains(q)));
+            if (!string.IsNullOrWhiteSpace(q)) query = query.Where(c => c.ExternalId.ToLower().Contains(q.ToLower()) || (c.Name != null && c.Name.ToLower().Contains(q.ToLower())) || (c.Email != null && c.Email.Contains(q.ToLower())) || (c.Mobile != null && c.Mobile.Contains(q)));
             pageSize = Math.Clamp(pageSize, 1, 200);
             var total = await query.CountAsync(ctx.RequestAborted);
             var rows = await query.OrderBy(c => c.Name).Skip((page - 1) * pageSize).Take(pageSize).ToListAsync(ctx.RequestAborted);
@@ -142,13 +142,14 @@ public static class RecipientEndpoints
             if (channel is { } ch) q = q.Where(s => s.Channel == ch);
             if (!string.IsNullOrWhiteSpace(address)) q = q.Where(s => s.Address.Contains(address.ToLower()));
             var rows = await q.OrderByDescending(s => s.CreatedAt).Skip((page - 1) * 100).Take(100).ToListAsync(ctx.RequestAborted);
-            return Results.Ok(rows.Select(s => new { s.Id, s.TenantId, s.CompanyId, channel = ChannelNames.ToWire(s.Channel), address = caller.Can(Permission.ViewMessageContent, s.TenantId, s.CompanyId) ? s.Address : Addressing.Mask(s.Channel, s.Address), s.Reason, s.PromotionalOnly, s.Source, s.CreatedAt }));
+            return Results.Ok(rows.Select(s => new { s.Id, s.TenantId, s.CompanyId, channel = ChannelNames.ToWire(s.Channel), address = caller.Can(Permission.ViewMessageContent, s.TenantId, s.CompanyId) ? s.Address : Addressing.Mask(s.Channel, s.Address), s.Reason, s.PromotionalOnly, s.Source, s.Note, s.CreatedAt }));
         });
         sup.MapPost("", async (SuppressionRequest req, HttpContext ctx, NotificationHubDbContext db, DeliveryStatusUpdater status, AuditService audit) =>
         {
             var caller = await ctx.CallerAsync();
             if (!caller.Can(Permission.ManageContacts, req.TenantId, req.CompanyId)) throw new AccessDeniedException();
-            await status.SuppressAsync(req.TenantId, req.CompanyId, req.Channel, req.Address, req.Reason, "manual:" + caller.ActorId, ctx.RequestAborted);
+            if (req.Note?.Length > 500) throw HubException.Validation("Notes are limited to 500 characters.");
+            await status.SuppressAsync(req.TenantId, req.CompanyId, req.Channel, req.Address, req.Reason, "manual:" + caller.ActorId, ctx.RequestAborted, req.Note, keepCompany: true);
             audit.Record(caller, "suppression.added", nameof(Suppression), null, $"{ChannelNames.ToWire(req.Channel)} {Addressing.Mask(req.Channel, req.Address)} ({req.Reason})", req.TenantId, req.CompanyId);
             await db.SaveChangesAsync(ctx.RequestAborted);
             return Results.NoContent();

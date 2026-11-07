@@ -129,7 +129,7 @@ public static class ReportEndpoints
                 .GroupBy(a => new { a.ProviderAccountId, a.ErrorCode }).Select(x => new { x.Key.ProviderAccountId, x.Key.ErrorCode, n = x.Count() }).OrderByDescending(x => x.n).Take(30).ToListAsync(ctx.RequestAborted);
             return Results.Ok(new
             {
-                transport = bus.Name, queues = await bus.GetStatsAsync(ctx.RequestAborted), outboxBacklog,
+                transport = bus.Name, queues = await bus.GetStatsAsync(ctx.RequestAborted), outboxBacklog, canRequeue = CanRequeue(caller),
                 workers = heartbeats.Select(h => new { h.Worker, h.Instance, status = h.LastHeartbeatAt < stale && h.Status == "running" ? "unresponsive" : h.Status, h.Processed, h.Failed, h.LastError, h.StartedAt, h.LastHeartbeatAt }),
                 retries = await db.NotificationDeliveries.CountAsync(d => d.Status == DeliveryStatus.RetryPending, ctx.RequestAborted),
                 awaitingOperator = await db.NotificationDeliveries.CountAsync(d => d.AwaitingOperator, ctx.RequestAborted),
@@ -141,7 +141,7 @@ public static class ReportEndpoints
         m.MapPost("/dead-letters/{id:guid}/requeue", async (Guid id, HttpContext ctx, NotificationHubDbContext db, AuditService audit) =>
         {
             var caller = await ctx.CallerAsync();
-            if (!caller.IsPlatformAdmin && !caller.Grants.Any(g => g.Role == Roles.Operator)) throw new AccessDeniedException();
+            if (!CanRequeue(caller)) throw new AccessDeniedException();
             var n = await db.QueueMessages.Where(q => q.Id == id && q.DeadLetteredAt != null).ExecuteUpdateAsync(s => s.SetProperty(q => q.DeadLetteredAt, (DateTime?)null)
                 .SetProperty(q => q.DequeueCount, 0).SetProperty(q => q.VisibleAt, DateTime.UtcNow).SetProperty(q => q.LeaseExpiresAt, (DateTime?)null), ctx.RequestAborted);
             audit.Record(caller, "queue.requeued", nameof(QueueMessage), id.ToString(), null);
@@ -153,6 +153,8 @@ public static class ReportEndpoints
             var caller = await ctx.CallerAsync();
             var a = await db.SystemAlerts.FirstOrDefaultAsync(x => x.Id == id, ctx.RequestAborted) ?? throw HubException.NotFound("Alert");
             if (a.TenantId is null ? !caller.IsPlatformAdmin : !caller.Can(Permission.ViewMonitoring, a.TenantId)) throw HubException.NotFound("Alert");
+            var filter = caller.FilterFor(Permission.AcknowledgeAlerts);
+            if (!filter.IsUnrestricted && !(a.TenantId is { } tenant && filter.TenantIds.Contains(tenant))) throw new AccessDeniedException();
             a.AcknowledgedAt = DateTime.UtcNow; a.AcknowledgedBy = caller.ActorId;
             await db.SaveChangesAsync(ctx.RequestAborted);
             return Results.NoContent();
@@ -173,6 +175,10 @@ public static class ReportEndpoints
             return Results.Ok(new { total = await q.CountAsync(ctx.RequestAborted), items = await q.OrderByDescending(a => a.OccurredAt).Skip((page - 1) * 100).Take(100).ToListAsync(ctx.RequestAborted) });
         }).WithTags("Reports & monitoring").RequireAuthorization("admin").WithSummary("Audit trail");
     }
+
+    /// <summary>Queue messages are shared by every tenant, so a company- or application-scoped grant is too narrow to requeue one.</summary>
+    private static bool CanRequeue(CallerContext caller)
+        => caller.Grants.Any(g => g.CompanyId is null && g.ApplicationId is null && RolePermissions.Has(g.Role, Permission.RetryDeliveries));
 
     private static IQueryable<NotificationDelivery> Deliveries(NotificationHubDbContext db, CallerContext caller, ReportFilter f, Permission permission = Permission.ViewUsage)
     {

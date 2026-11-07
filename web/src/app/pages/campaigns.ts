@@ -14,10 +14,10 @@ import { Observable } from 'rxjs';
 import { ApiService } from '../core/api.service';
 import { AuthService } from '../core/auth.service';
 import { LookupsService } from '../core/lookups.service';
-import { CHANNELS, Campaign, CampaignRecipient, Channel, Group, MESSAGE_CLASSES, MessageClass, NotificationType, SendResponse, TemplateSummary } from '../core/models';
+import { CHANNELS, Campaign, CampaignDraft, CampaignRecipient, Channel, Group, MESSAGE_CLASSES, MessageClass, NotificationType, SendResponse, TemplateSummary } from '../core/models';
 import { ConditionBuilder } from '../shared/condition-builder';
 import { EdGroup, describe, fromApi, toApi, validateTree } from '../shared/conditions';
-import { UI } from '../shared/ui';
+import { UI, toLocalInput } from '../shared/ui';
 import { confirmDialog } from '../shared/widgets';
 
 const TABS: { label: string; statuses: string[] }[] = [
@@ -31,13 +31,13 @@ const TABS: { label: string; statuses: string[] }[] = [
   selector: 'app-campaign-form',
   imports: [FormsModule, MatDialogModule, MatButtonModule, MatFormFieldModule, MatIconModule, MatInputModule, MatSelectModule, ConditionBuilder, ...UI],
   template: `
-    <h2 mat-dialog-title>{{ data.campaign ? 'Edit campaign' : 'New campaign' }}</h2>
+    <h2 mat-dialog-title>{{ data.draft ? 'Edit campaign' : 'New campaign' }}</h2>
     <mat-dialog-content>
       <div class="form-grid">
         <mat-form-field><mat-label>Company</mat-label>
-          <mat-select [(ngModel)]="m.companyId" (selectionChange)="companyChanged()" [disabled]="!!data.campaign">@for (c of lookups.companies(); track c.id) { <mat-option [value]="c.id">{{ c.name }}</mat-option> }</mat-select></mat-form-field>
+          <mat-select [(ngModel)]="m.companyId" (selectionChange)="companyChanged()" [disabled]="!!data.draft">@for (c of lookups.companies(); track c.id) { <mat-option [value]="c.id">{{ c.name }}</mat-option> }</mat-select></mat-form-field>
         <mat-form-field><mat-label>Application</mat-label>
-          <mat-select [(ngModel)]="m.applicationId" [disabled]="!!data.campaign">@for (a of lookups.appsForCompany(m.companyId); track a.id) { <mat-option [value]="a.id">{{ a.name }}</mat-option> }</mat-select></mat-form-field>
+          <mat-select [(ngModel)]="m.applicationId" [disabled]="!!data.draft">@for (a of lookups.appsForCompany(m.companyId); track a.id) { <mat-option [value]="a.id">{{ a.name }}</mat-option> }</mat-select></mat-form-field>
         <mat-form-field><mat-label>Name</mat-label><input matInput [(ngModel)]="m.name" required></mat-form-field>
         <mat-form-field><mat-label>Channels</mat-label>
           <mat-select [(ngModel)]="m.channels" multiple>@for (c of channels; track c) { <mat-option [value]="c">{{ c | channel }}</mat-option> }</mat-select></mat-form-field>
@@ -71,7 +71,7 @@ export class CampaignForm implements OnInit {
   private api = inject(ApiService);
   private ref = inject(MatDialogRef<CampaignForm>);
   lookups = inject(LookupsService);
-  data = inject<{ campaign?: Campaign; templates: TemplateSummary[]; types: NotificationType[] }>(MAT_DIALOG_DATA);
+  data = inject<{ draft?: CampaignDraft; templates: TemplateSummary[]; types: NotificationType[] }>(MAT_DIALOG_DATA);
   channels = CHANNELS; classes = MESSAGE_CLASSES;
   types = signal(this.data.types);
   groups = signal<Group[]>([]);
@@ -87,12 +87,12 @@ export class CampaignForm implements OnInit {
   templateCodes = () => [...new Set(this.data.templates.filter(t => this.m.channels.includes(t.channel)).map(t => t.code))].sort();
 
   ngOnInit() {
-    const c = this.data.campaign;
+    const c = this.data.draft;
     if (c) {
-      const local = c.scheduledAt ? new Date(c.scheduledAt) : null;
       this.m = { companyId: c.companyId, applicationId: c.applicationId, name: c.name, description: c.description ?? '', channels: [...c.channels], templateCode: c.templateCode,
-        notificationTypeCode: '', messageClass: c.messageClass, groupIds: [], variables: '', throttlePerMinute: c.throttlePerMinute,
-        scheduledAt: local ? new Date(local.getTime() - local.getTimezoneOffset() * 60000).toISOString().slice(0, 16) : '' };
+        notificationTypeCode: c.notificationTypeCode ?? '', messageClass: c.messageClass, groupIds: [...(c.groupIds ?? [])], throttlePerMinute: c.throttlePerMinute,
+        variables: Object.entries(c.variables ?? {}).map(([k, v]) => `${k}=${v}`).join('\n'), scheduledAt: toLocalInput(c.scheduledAt) };
+      this.segment = fromApi(c.segment);
     } else {
       this.m.companyId = this.lookups.companies().find(x => this.lookups.appsForCompany(x.id).length)?.id ?? '';
       this.m.applicationId = this.lookups.appsForCompany(this.m.companyId)[0]?.id ?? '';
@@ -114,7 +114,7 @@ export class CampaignForm implements OnInit {
       variables: Object.keys(variables).length ? variables : null, scheduledAt: this.m.scheduledAt ? new Date(this.m.scheduledAt).toISOString() : null, throttlePerMinute: Number(this.m.throttlePerMinute) || 600,
     };
     this.busy.set(true); this.error.set(null);
-    const c = this.data.campaign;
+    const c = this.data.draft;
     (c ? this.api.updateCampaign(c.id, body) : this.api.createCampaign(body)).subscribe({ next: r => this.ref.close(r.id), error: e => { this.busy.set(false); this.error.set(e); } });
   }
 }
@@ -177,7 +177,7 @@ export class CampaignForm implements OnInit {
             @if (canManage() && c.status !== 'Completed' && c.status !== 'Cancelled') {
               <button mat-stroked-button class="danger" (click)="act(c, 'cancel', 'Cancel campaign?', 'Pending deliveries are cancelled. This cannot be undone.', true)"><mat-icon>cancel</mat-icon>Cancel</button>
             }
-            @if (auth.can('EmergencySuspend', 'ApproveCampaigns') && c.status !== 'Completed' && c.status !== 'Cancelled') {
+            @if (auth.can('EmergencySuspend', 'ApproveCampaigns') && (c.suspended || (c.status !== 'Completed' && c.status !== 'Cancelled'))) {
               <button mat-stroked-button [class.danger]="!c.suspended" (click)="suspend(c)"><mat-icon>{{ c.suspended ? 'play_circle' : 'front_hand' }}</mat-icon>{{ c.suspended ? 'Lift hold' : 'Emergency hold' }}</button>
             }
           </div>
@@ -299,9 +299,11 @@ export class Campaigns implements OnInit {
 
   edit(c?: Campaign) {
     if (!this.templates().length && this.auth.can('ViewTemplates')) this.api.templates({ status: 'Active' }).subscribe(t => this.templates.set(t));
-    this.dialog.open(CampaignForm, { data: { campaign: c, templates: this.templates(), types: this.types() }, width: '900px', maxWidth: '96vw' }).afterClosed().subscribe((id?: string) => {
+    const open = (draft?: CampaignDraft) => this.dialog.open(CampaignForm, { data: { draft, templates: this.templates(), types: this.types() }, width: '900px', maxWidth: '96vw' }).afterClosed().subscribe((id?: string) => {
       if (id) { this.snack.open('Campaign saved as draft', 'OK', { duration: 3000 }); this.load(id); }
     });
+    if (c) this.api.campaign(c.id).subscribe({ next: d => open(d), error: e => this.error.set(e) });
+    else open();
   }
 
   import(c: Campaign, input: HTMLInputElement) {

@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Wings.NotificationHub.Client;
 using Wings.NotificationHub.Contracts;
 using Wings.NotificationHub.Infrastructure.Data;
@@ -43,6 +44,15 @@ public sealed class HubFactory : WebApplicationFactory<Program>
             // Outbound webhooks go to an in-memory receiver instead of the network.
             services.AddHttpClient("webhooks").ConfigurePrimaryHttpMessageHandler(sp => new FakeWebhookHandler(sp.GetRequiredService<FakeWebhookReceiver>()));
         });
+    }
+
+    /// <summary>The demo company's quiet hours would make promotional-mail tests pass only in the daytime.</summary>
+    protected override IHost CreateHost(IHostBuilder builder)
+    {
+        var host = base.CreateHost(builder);
+        using var scope = host.Services.CreateScope();
+        scope.ServiceProvider.GetRequiredService<NotificationHubDbContext>().Companies.ExecuteUpdate(u => u.SetProperty(c => c.QuietHoursJson, (string?)null));
+        return host;
     }
 
     public IReadOnlyDictionary<string, string> Credentials

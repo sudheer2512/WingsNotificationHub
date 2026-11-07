@@ -46,6 +46,16 @@ public static class CampaignEndpoints
             }));
         });
 
+        g.MapGet("/{id:guid}", async (Guid id, HttpContext ctx, NotificationHubDbContext db) =>
+        {
+            var c = await Load(ctx, db, id, Permission.ManageCampaigns);
+            return Results.Ok(new
+            {
+                c.Id, c.CompanyId, c.ApplicationId, c.Name, c.Description, channels = c.Channels.Select(ChannelNames.ToWire), c.TemplateCode, c.NotificationTypeCode, c.MessageClass,
+                c.GroupIds, segment = Json.Deserialize<ConditionNode>(c.SegmentJson), variables = Json.Deserialize<Dictionary<string, string>>(c.VariablesJson), c.ScheduledAt, c.ThrottlePerMinute,
+            });
+        }).WithSummary("The editable fields of a campaign, in the shape PUT accepts");
+
         g.MapPost("", async (CampaignRequest req, HttpContext ctx, NotificationHubDbContext db, TenantContextResolver resolver, AuditService audit) =>
         {
             var caller = await ctx.CallerAsync();
@@ -100,7 +110,7 @@ public static class CampaignEndpoints
             {
                 ApplicationId = c.ApplicationId, CompanyId = c.CompanyId, TemplateCode = c.TemplateCode, NotificationType = c.NotificationTypeCode, Channels = c.Channels,
                 Recipient = req.Recipient, Variables = vars, Metadata = new() { ["campaignTest"] = c.Name },
-            }, RequestSource.TestSend, new AcceptOptions { MessageClass = c.MessageClass }, ctx.RequestAborted);
+            }, RequestSource.TestSend, new AcceptOptions { MessageClass = c.MessageClass, RequiredPermission = Permission.ManageCampaigns }, ctx.RequestAborted);
             return Results.Ok(resp);
         }).WithSummary("Send the campaign to a single test recipient");
         g.MapPost("/{id:guid}/submit", async (Guid id, HttpContext ctx, NotificationHubDbContext db, AuditService audit) =>
@@ -142,6 +152,7 @@ public static class CampaignEndpoints
             if (c.Status is CampaignStatus.Completed or CampaignStatus.Cancelled) throw HubException.Conflict("invalid_state", "Campaign already finished.");
             c.Status = CampaignStatus.Cancelled;
             c.CompletedAt = DateTime.UtcNow;
+            c.Suspended = false; // nothing is left to hold: every pending message is cancelled below
             // Queued campaign messages not yet sent are cancelled too.
             var pending = await db.NotificationDeliveries.Where(d => d.CampaignId == id && (d.Status == DeliveryStatus.Scheduled || d.Status == DeliveryStatus.Queued || d.Status == DeliveryStatus.RetryPending))
                 .ExecuteUpdateAsync(s => s.SetProperty(d => d.Status, DeliveryStatus.Cancelled).SetProperty(d => d.StatusReason, "campaign cancelled").SetProperty(d => d.CompletedAt, DateTime.UtcNow), ctx.RequestAborted);
@@ -168,37 +179,37 @@ public static class CampaignEndpoints
         {
             var caller = await ctx.CallerAsync();
             var tc = await resolver.ResolveAsync(caller, req.ApplicationId ?? req.Notification.ApplicationId, req.CompanyId, Permission.SendNotifications, Scopes.NotificationsSend, ctx.RequestAborted);
-            if (string.IsNullOrWhiteSpace(req.CronExpression) == (req.SequenceOffsetsMinutes is not { Count: > 0 }))
-                throw HubException.Validation("Provide either cronExpression (recurring) or sequenceOffsetsMinutes (reminder sequence).");
-            if (req.CronExpression is { } cron)
-            {
-                try { Cronos.CronExpression.Parse(cron); } catch (Cronos.CronFormatException ex) { throw HubException.Validation("Invalid cron expression: " + ex.Message); }
-            }
-            if (!TimeZoneInfo.TryFindSystemTimeZoneById(req.TimeZone, out _)) throw HubException.Validation($"Unknown time zone '{req.TimeZone}'.");
-            req.Notification.ApplicationId = tc.Application.Id;
-            req.Notification.CompanyId = tc.Company.Id;
-            // Validate the notification up front with a dry run so a broken schedule is rejected now, not at 2 a.m.
-            var probe = JsonSerializer.Deserialize<SendNotificationRequest>(JsonSerializer.Serialize(req.Notification))!;
-            probe.DryRun = true; probe.ScheduleAt = null; probe.IdempotencyKey = null;
-            await notifications.AcceptAsync(caller, probe, RequestSource.Schedule, null, ctx.RequestAborted);
+            await ValidateScheduleAsync(caller, req, tc, notifications, ctx.RequestAborted);
             var sch = new NotificationSchedule
             {
-                TenantId = tc.Tenant.Id, CompanyId = tc.Company.Id, ApplicationId = tc.Application.Id, Name = req.Name, CronExpression = req.CronExpression,
-                SequenceOffsetsJson = req.SequenceOffsetsMinutes is { Count: > 0 } o ? Json.Serialize(o.OrderBy(x => x).ToList()) : null, TimeZone = req.TimeZone,
-                StartAt = req.StartAt?.UtcDateTime ?? DateTime.UtcNow, EndAt = req.EndAt?.UtcDateTime, MaxRuns = req.MaxRuns, WorkingDaysOnly = req.WorkingDaysOnly,
-                HolidayCalendarId = req.HolidayCalendarId, RequestJson = Json.Serialize(req.Notification), CreatedBy = caller.ActorId,
-                CreatedByCredential = caller.Kind == CallerKind.Application ? caller.ActorId : null,
+                TenantId = tc.Tenant.Id, CompanyId = tc.Company.Id, ApplicationId = tc.Application.Id, CreatedBy = caller.ActorId,
+                CreatedByCredential = caller.Kind == CallerKind.Application ? caller.ActorId : null, StartAt = DateTime.UtcNow,
             };
+            ApplySchedule(sch, req);
             sch.NextRunAt = await schedules.ComputeNextRunAsync(sch, DateTime.UtcNow, ctx.RequestAborted);
             db.NotificationSchedules.Add(sch);
             await db.SaveChangesAsync(ctx.RequestAborted);
             return Results.Created($"/api/v1/schedules/{sch.Id}", new { sch.Id, sch.NextRunAt });
         }).WithSummary("Create a recurring notification or reminder sequence (time-zone, working-day and holiday aware)");
+        s.MapPut("/{id:guid}", async (Guid id, ScheduleRequest req, HttpContext ctx, NotificationHubDbContext db, TenantContextResolver resolver, ScheduleService schedules, NotificationService notifications, AuditService audit) =>
+        {
+            var caller = await ctx.CallerAsync();
+            var x = await LoadSchedule(caller, db, id, ctx.RequestAborted);
+            // A schedule stays with its company and application; only what it sends and when can change.
+            var tc = await resolver.ResolveAsync(caller, x.ApplicationId, x.CompanyId, Permission.SendNotifications, Scopes.NotificationsSend, ctx.RequestAborted);
+            await ValidateScheduleAsync(caller, req, tc, notifications, ctx.RequestAborted);
+            var sequence = x.SequenceOffsetsJson;
+            ApplySchedule(x, req);
+            if (x.SequenceOffsetsJson != sequence) x.SequenceIndex = 0;
+            if (x.Enabled) x.NextRunAt = await schedules.ComputeNextRunAsync(x, DateTime.UtcNow, ctx.RequestAborted);
+            audit.Record(caller, "schedule.updated", nameof(NotificationSchedule), x.Id.ToString(), x.Name, x.TenantId, x.CompanyId, x.ApplicationId);
+            await db.SaveChangesAsync(ctx.RequestAborted);
+            return Results.Ok(new { x.Id, x.NextRunAt });
+        }).WithSummary("Change what a schedule sends and when");
         s.MapPost("/{id:guid}/enabled/{enabled:bool}", async (Guid id, bool enabled, HttpContext ctx, NotificationHubDbContext db, ScheduleService schedules) =>
         {
             var caller = await ctx.CallerAsync();
-            var x = await db.NotificationSchedules.FirstOrDefaultAsync(z => z.Id == id, ctx.RequestAborted);
-            if (x is null || !caller.Can(Permission.SendNotifications, x.TenantId, x.CompanyId, x.ApplicationId) || (caller.Kind == CallerKind.Application && caller.ApplicationId != x.ApplicationId)) throw HubException.NotFound("Schedule");
+            var x = await LoadSchedule(caller, db, id, ctx.RequestAborted);
             x.Enabled = enabled;
             if (enabled) x.NextRunAt = await schedules.ComputeNextRunAsync(x, DateTime.UtcNow, ctx.RequestAborted);
             await db.SaveChangesAsync(ctx.RequestAborted);
@@ -207,8 +218,7 @@ public static class CampaignEndpoints
         s.MapDelete("/{id:guid}", async (Guid id, HttpContext ctx, NotificationHubDbContext db) =>
         {
             var caller = await ctx.CallerAsync();
-            var x = await db.NotificationSchedules.FirstOrDefaultAsync(z => z.Id == id, ctx.RequestAborted);
-            if (x is null || !caller.Can(Permission.SendNotifications, x.TenantId, x.CompanyId, x.ApplicationId) || (caller.Kind == CallerKind.Application && caller.ApplicationId != x.ApplicationId)) throw HubException.NotFound("Schedule");
+            var x = await LoadSchedule(caller, db, id, ctx.RequestAborted);
             db.NotificationSchedules.Remove(x);
             await db.SaveChangesAsync(ctx.RequestAborted);
             return Results.NoContent();
@@ -231,6 +241,76 @@ public static class CampaignEndpoints
             await db.SaveChangesAsync(ctx.RequestAborted);
             return Results.Created($"/api/v1/holiday-calendars/{c.Id}", new { c.Id });
         });
+        cal.MapPut("/{id:guid}", async (Guid id, HolidayCalendarRequest req, HttpContext ctx, NotificationHubDbContext db, ScheduleService schedules, AuditService audit) =>
+        {
+            var caller = await ctx.CallerAsync();
+            var c = await LoadCalendar(caller, db, id, ctx.RequestAborted);
+            if (string.IsNullOrWhiteSpace(req.Name)) throw HubException.Validation("name is required.");
+            c.Name = req.Name.Trim(); c.Country = req.Country;
+            var wanted = req.Dates.DistinctBy(d => d.Date).ToDictionary(d => d.Date, d => d.Name);
+            db.HolidayDates.RemoveRange(c.Dates.Where(d => !wanted.ContainsKey(d.Date)));
+            foreach (var d in c.Dates.Where(d => wanted.ContainsKey(d.Date))) d.Name = wanted[d.Date];
+            foreach (var (date, name) in wanted.Where(w => c.Dates.All(d => d.Date != w.Key))) db.HolidayDates.Add(new HolidayDate { CalendarId = c.Id, Date = date, Name = name });
+            audit.Record(caller, "holiday_calendar.updated", nameof(HolidayCalendar), id.ToString(), $"{c.Name}: {wanted.Count} dates", c.TenantId);
+            await db.SaveChangesAsync(ctx.RequestAborted);
+            // Next runs were worked out against the old dates.
+            foreach (var x in await db.NotificationSchedules.Where(x => x.HolidayCalendarId == id && x.Enabled).ToListAsync(ctx.RequestAborted))
+                x.NextRunAt = await schedules.ComputeNextRunAsync(x, DateTime.UtcNow, ctx.RequestAborted);
+            await db.SaveChangesAsync(ctx.RequestAborted);
+            return Results.Ok(new { c.Id });
+        }).WithSummary("Change a calendar's name, country and dates; schedules using it are rescheduled");
+        cal.MapDelete("/{id:guid}", async (Guid id, HttpContext ctx, NotificationHubDbContext db, AuditService audit) =>
+        {
+            var caller = await ctx.CallerAsync();
+            var c = await LoadCalendar(caller, db, id, ctx.RequestAborted);
+            var used = await db.NotificationSchedules.CountAsync(x => x.HolidayCalendarId == id, ctx.RequestAborted);
+            if (used > 0) throw HubException.Conflict("calendar_in_use", $"{used} schedule(s) use this calendar. Choose another calendar for them first.");
+            db.HolidayCalendars.Remove(c);
+            audit.Record(caller, "holiday_calendar.deleted", nameof(HolidayCalendar), id.ToString(), c.Name, c.TenantId);
+            await db.SaveChangesAsync(ctx.RequestAborted);
+            return Results.NoContent();
+        });
+    }
+
+    private static async Task ValidateScheduleAsync(CallerContext caller, ScheduleRequest req, TenantContext tc, NotificationService notifications, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(req.Name)) throw HubException.Validation("name is required.");
+        if (string.IsNullOrWhiteSpace(req.CronExpression) == (req.SequenceOffsetsMinutes is not { Count: > 0 }))
+            throw HubException.Validation("Provide either cronExpression (recurring) or sequenceOffsetsMinutes (reminder sequence).");
+        if (req.CronExpression is { } cron)
+        {
+            try { Cronos.CronExpression.Parse(cron); } catch (Cronos.CronFormatException ex) { throw HubException.Validation("Invalid cron expression: " + ex.Message); }
+        }
+        if (!TimeZoneInfo.TryFindSystemTimeZoneById(req.TimeZone, out _)) throw HubException.Validation($"Unknown time zone '{req.TimeZone}'.");
+        req.Notification.ApplicationId = tc.Application.Id;
+        req.Notification.CompanyId = tc.Company.Id;
+        // Validate the notification up front with a dry run so a broken schedule is rejected now, not at 2 a.m.
+        var probe = JsonSerializer.Deserialize<SendNotificationRequest>(JsonSerializer.Serialize(req.Notification))!;
+        probe.DryRun = true; probe.ScheduleAt = null; probe.IdempotencyKey = null;
+        await notifications.AcceptAsync(caller, probe, RequestSource.Schedule, null, ct);
+    }
+
+    private static void ApplySchedule(NotificationSchedule x, ScheduleRequest req)
+    {
+        x.Name = req.Name; x.CronExpression = req.CronExpression; x.TimeZone = req.TimeZone; x.EndAt = req.EndAt?.UtcDateTime; x.MaxRuns = req.MaxRuns;
+        x.SequenceOffsetsJson = req.SequenceOffsetsMinutes is { Count: > 0 } o ? Json.Serialize(o.OrderBy(v => v).ToList()) : null;
+        if (req.StartAt is { } start) x.StartAt = start.UtcDateTime;
+        x.WorkingDaysOnly = req.WorkingDaysOnly; x.HolidayCalendarId = req.HolidayCalendarId; x.RequestJson = Json.Serialize(req.Notification);
+    }
+
+    private static async Task<NotificationSchedule> LoadSchedule(CallerContext caller, NotificationHubDbContext db, Guid id, CancellationToken ct)
+    {
+        var x = await db.NotificationSchedules.FirstOrDefaultAsync(z => z.Id == id, ct);
+        if (x is null || !caller.Can(Permission.SendNotifications, x.TenantId, x.CompanyId, x.ApplicationId) || (caller.Kind == CallerKind.Application && caller.ApplicationId != x.ApplicationId))
+            throw HubException.NotFound("Schedule");
+        return x;
+    }
+
+    private static async Task<HolidayCalendar> LoadCalendar(CallerContext caller, NotificationHubDbContext db, Guid id, CancellationToken ct)
+    {
+        var c = await db.HolidayCalendars.Include(x => x.Dates).FirstOrDefaultAsync(x => x.Id == id, ct) ?? throw HubException.NotFound("Holiday calendar");
+        if (c.TenantId is null ? !caller.IsPlatformAdmin : !caller.Can(Permission.ManageTenancy, c.TenantId)) throw new AccessDeniedException();
+        return c;
     }
 
     private static void Apply(Campaign c, CampaignRequest req)

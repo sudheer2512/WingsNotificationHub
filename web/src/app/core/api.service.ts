@@ -85,6 +85,7 @@ export class ApiService {
   testSend(id: string, body: { companyId: string; applicationId?: string | null; recipient: Record<string, unknown>; variables?: Record<string, unknown>; version?: number }) {
     return this.post<{ delivered: boolean; note?: string; resp?: M.SendResponse; preview?: M.PreviewResponse }>(`/templates/${id}/test-send`, body);
   }
+  whatsAppAccounts(id: string) { return this.get<M.WhatsAppAccount[]>(`/templates/${id}/whatsapp-accounts`); }
   whatsAppSubmit(id: string, providerAccountId: string, version: number) { return this.post<{ status: string }>(`/templates/${id}/whatsapp-submit`, { providerAccountId, version }); }
   notificationTypes(q: Q = {}) { return this.get<M.NotificationType[]>('/notification-types', q); }
   saveNotificationType(body: Partial<M.NotificationType>) { return this.post<M.NotificationType>('/notification-types', body); }
@@ -115,6 +116,7 @@ export class ApiService {
 
   // ---- campaigns ----
   campaigns(status?: string) { return this.get<M.Campaign[]>('/campaigns', { status }); }
+  campaign(id: string) { return this.get<M.CampaignDraft>(`/campaigns/${id}`); }
   createCampaign(body: Record<string, unknown>) { return this.post<{ id: string }>('/campaigns', body); }
   updateCampaign(id: string, body: Record<string, unknown>) { return this.put<{ id: string }>(`/campaigns/${id}`, body); }
   campaignRecipients(id: string, status?: string, page = 1) { return this.get<M.CampaignRecipient[]>(`/campaigns/${id}/recipients`, { status, page }); }
@@ -178,6 +180,8 @@ export class ApiService {
   revokeCredential(id: string) { return this.post<void>(`/credentials/${id}/revoke`); }
   users() { return this.get<M.AdminUser[]>('/users'); }
   saveUser(body: Record<string, unknown>) { return this.post<{ id: string }>('/users', body); }
+  grantRole(id: string, role: Record<string, unknown>) { return this.post<{ id: string }>(`/users/${id}/roles`, role); }
+  updateUser(id: string, body: { displayName?: string; password?: string | null; enabled?: boolean }) { return this.put<{ id: string; enabled: boolean }>(`/users/${id}`, body); }
   removeRole(id: string) { return this.del<void>(`/users/roles/${id}`); }
   suspend(kind: 'tenant' | 'company' | 'application' | 'campaign', id: string, suspended: boolean, reason?: string) {
     return this.post<{ kind: string; id: string; suspended: boolean }>(`/suspend/${kind}/${id}`, { suspended, reason });
@@ -190,8 +194,11 @@ export class ApiService {
   testWebhook(id: string) { return this.post<{ eventId: string }>(`/webhooks/${id}/test`); }
   schedules() { return this.get<M.Schedule[]>('/schedules'); }
   createSchedule(body: Record<string, unknown>) { return this.post<{ id: string; nextRunAt?: string }>('/schedules', body); }
+  updateSchedule(id: string, body: Record<string, unknown>) { return this.put<{ id: string; nextRunAt?: string }>(`/schedules/${id}`, body); }
   setScheduleEnabled(id: string, enabled: boolean) { return this.post<{ enabled: boolean; nextRunAt?: string }>(`/schedules/${id}/enabled/${enabled}`); }
   deleteSchedule(id: string) { return this.del<void>(`/schedules/${id}`); }
   holidayCalendars() { return this.get<M.HolidayCalendar[]>('/holiday-calendars'); }
   createHolidayCalendar(body: Record<string, unknown>) { return this.post<{ id: string }>('/holiday-calendars', body); }
+  updateHolidayCalendar(id: string, body: Record<string, unknown>) { return this.put<{ id: string }>(`/holiday-calendars/${id}`, body); }
+  deleteHolidayCalendar(id: string) { return this.del<void>(`/holiday-calendars/${id}`); }
 }

@@ -90,7 +90,10 @@ interface Card { label: string; value: string; icon: string; tone: Tone; hint?: 
             } @else { <app-empty icon="queue" text="Queue statistics are not available" /> }
             <h3 style="margin:12px 0 6px">Status breakdown</h3>
             <div class="wrap-row">
-              @for (s of statuses(); track s.key) { <a [routerLink]="'/explorer'" [queryParams]="{ status: s.key }" style="text-decoration:none"><app-chip [value]="s.key" [label]="s.label" /></a> }
+              @for (s of statuses(); track s.key) {
+                @if (auth.can('ViewNotifications')) { <a [routerLink]="'/explorer'" [queryParams]="{ status: s.key }" style="text-decoration:none"><app-chip [value]="s.key" [label]="s.label" /></a> }
+                @else { <app-chip [value]="s.key" [label]="s.label" /> }
+              }
               @empty { <span class="muted small">No deliveries</span> }
             </div>
           </section>
@@ -121,18 +124,20 @@ export class DashboardPage implements OnInit {
     const d = this.data();
     if (!d) return [];
     const rate = d.successRate;
+    // Roles without the explorer see the numbers, not links that would turn them away.
+    const explorer = this.auth.can('ViewNotifications') ? '/explorer' : undefined;
     const cards: Card[] = [
-      { label: 'Notifications', value: fmtNum(d.totalNotifications), icon: 'notifications', tone: 'info', hint: `${fmtNum(d.totalDeliveries)} deliveries`, link: '/explorer' },
-      { label: 'Sent today', value: fmtNum(d.sentToday), icon: 'today', tone: 'info', link: '/explorer' },
-      { label: 'Delivered', value: fmtNum(d.delivered), icon: 'mark_email_read', tone: 'good', hint: `${fmtNum(d.accepted)} more accepted by providers`, link: '/explorer', query: { status: 'Delivered' } },
-      { label: 'Failed', value: fmtNum(d.failed), icon: 'error', tone: d.failed ? 'bad' : 'good', link: '/explorer', query: { status: 'Failed' } },
-      { label: 'Pending', value: fmtNum(d.pending), icon: 'hourglass_top', tone: d.pending ? 'warn' : 'good', hint: 'Scheduled, queued, processing, submitted or retrying', link: '/explorer' },
+      { label: 'Notifications', value: fmtNum(d.totalNotifications), icon: 'notifications', tone: 'info', hint: `${fmtNum(d.totalDeliveries)} deliveries`, link: explorer },
+      { label: 'Sent today', value: fmtNum(d.sentToday), icon: 'today', tone: 'info', link: explorer },
+      { label: 'Delivered', value: fmtNum(d.delivered), icon: 'mark_email_read', tone: 'good', hint: `${fmtNum(d.accepted)} more accepted by providers`, link: explorer, query: { status: 'Delivered' } },
+      { label: 'Failed', value: fmtNum(d.failed), icon: 'error', tone: d.failed ? 'bad' : 'good', link: explorer, query: { status: 'Failed' } },
+      { label: 'Pending', value: fmtNum(d.pending), icon: 'hourglass_top', tone: d.pending ? 'warn' : 'good', hint: 'Scheduled, queued, processing, submitted or retrying', link: explorer },
       { label: 'Success rate', value: rate == null ? '—' : `${rate.toFixed(1)} %`, icon: 'percent', tone: rate == null ? 'off' : rate >= 95 ? 'good' : rate >= 80 ? 'warn' : 'bad',
         hint: '(delivered + accepted) / (delivered + accepted + failed)' },
-      { label: 'Retry backlog', value: fmtNum(d.retryBacklog), icon: 'replay', tone: d.retryBacklog ? 'warn' : 'good', link: '/explorer', query: { status: 'RetryPending' } },
+      { label: 'Retry backlog', value: fmtNum(d.retryBacklog), icon: 'replay', tone: d.retryBacklog ? 'warn' : 'good', link: explorer, query: { status: 'RetryPending' } },
       { label: 'Awaiting operator', value: fmtNum(d.awaitingOperator), icon: 'support_agent', tone: d.awaitingOperator ? 'bad' : 'good',
-        hint: 'Unknown-outcome deliveries waiting for an operator decision', link: '/explorer', query: { awaitingOperator: 'true' } },
-      { label: 'Suppressed', value: fmtNum(d.suppressed), icon: 'block', tone: 'off', hint: 'Blocked by consent, preference or suppression policy', link: '/explorer', query: { status: 'Suppressed' } },
+        hint: 'Unknown-outcome deliveries waiting for an operator decision', link: explorer, query: { awaitingOperator: 'true' } },
+      { label: 'Suppressed', value: fmtNum(d.suppressed), icon: 'block', tone: 'off', hint: 'Blocked by consent, preference or suppression policy', link: explorer, query: { status: 'Suppressed' } },
       { label: 'Estimated cost', value: fmtMoney(d.estimatedCost), icon: 'payments', tone: 'info', link: this.auth.can('ViewUsage') ? '/usage' : undefined },
     ];
     return cards;

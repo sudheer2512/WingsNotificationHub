@@ -1,4 +1,4 @@
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, ElementRef, OnInit, ViewChild, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
@@ -14,7 +14,7 @@ import { ApiService } from '../core/api.service';
 import { AuthService } from '../core/auth.service';
 import { LookupsService } from '../core/lookups.service';
 import { CHANNELS, Channel, HolidayCalendar, NotificationType, Schedule } from '../core/models';
-import { UI } from '../shared/ui';
+import { UI, toLocalInput } from '../shared/ui';
 import { JsonDialog, confirmDialog } from '../shared/widgets';
 
 @Component({
@@ -36,18 +36,21 @@ import { JsonDialog, confirmDialog } from '../shared/widgets';
               <td class="num">{{ s.runCount }}@if (s.maxRuns) { / {{ s.maxRuns }} }</td>
               <td><mat-slide-toggle [checked]="s.enabled" (change)="toggle(s, $event.checked)" [disabled]="!canSend()" [attr.aria-label]="'Enable ' + s.name" /></td>
               <td class="nowrap"><button mat-icon-button (click)="view(s)" aria-label="View request"><mat-icon>data_object</mat-icon></button>
-                @if (canSend()) { <button mat-icon-button (click)="remove(s)" aria-label="Delete schedule"><mat-icon>delete</mat-icon></button> }</td></tr>
+                @if (canSend()) {
+                  <button mat-icon-button (click)="edit(s)" aria-label="Edit schedule"><mat-icon>edit</mat-icon></button>
+                  <button mat-icon-button (click)="remove(s)" aria-label="Delete schedule"><mat-icon>delete</mat-icon></button>
+                }</td></tr>
           } @empty { <tr><td colspan="9" class="muted">No schedules</td></tr> }</tbody>
         </table></div>
       </section>
       @if (canSend()) {
-        <section class="panel" style="margin-top:12px">
-          <h2>New schedule</h2>
+        <section class="panel" style="margin-top:12px" #form>
+          <h2>{{ editing() ? 'Edit ' + editing()!.name : 'New schedule' }}</h2>
           <div class="form-grid">
             <mat-form-field><mat-label>Name</mat-label><input matInput [(ngModel)]="m.name"></mat-form-field>
-            <mat-form-field><mat-label>Company</mat-label><mat-select [(ngModel)]="m.companyId" (selectionChange)="m.applicationId = lookups.appsForCompany(m.companyId)[0]?.id ?? ''">
+            <mat-form-field><mat-label>Company</mat-label><mat-select [(ngModel)]="m.companyId" [disabled]="!!editing()" (selectionChange)="m.applicationId = lookups.appsForCompany(m.companyId)[0]?.id ?? ''">
               @for (c of lookups.companies(); track c.id) { <mat-option [value]="c.id">{{ c.name }}</mat-option> }</mat-select></mat-form-field>
-            <mat-form-field><mat-label>Application</mat-label><mat-select [(ngModel)]="m.applicationId">@for (a of lookups.appsForCompany(m.companyId); track a.id) { <mat-option [value]="a.id">{{ a.name }}</mat-option> }</mat-select></mat-form-field>
+            <mat-form-field><mat-label>Application</mat-label><mat-select [(ngModel)]="m.applicationId" [disabled]="!!editing()">@for (a of lookups.appsForCompany(m.companyId); track a.id) { <mat-option [value]="a.id">{{ a.name }}</mat-option> }</mat-select></mat-form-field>
             <mat-form-field><mat-label>Time zone</mat-label><input matInput [(ngModel)]="m.timeZone"></mat-form-field>
           </div>
           <mat-button-toggle-group [(ngModel)]="m.kind" hideSingleSelectionIndicator aria-label="Schedule kind">
@@ -75,7 +78,10 @@ import { JsonDialog, confirmDialog } from '../shared/widgets';
             <mat-form-field class="span-2"><mat-label>Variables (JSON)</mat-label><textarea matInput rows="4" class="code" [(ngModel)]="m.variables"></textarea></mat-form-field>
           </div>
           <div class="small muted">The request is validated with a dry run before the schedule is saved.</div>
-          <button mat-flat-button (click)="create()" [disabled]="busy() || !m.name || !m.companyId || !m.applicationId"><mat-icon>add_alarm</mat-icon>Create schedule</button>
+          <div class="row">
+            <button mat-flat-button (click)="save()" [disabled]="busy() || !m.name || !m.companyId || !m.applicationId"><mat-icon>{{ editing() ? 'save' : 'add_alarm' }}</mat-icon>{{ editing() ? 'Save changes' : 'Create schedule' }}</button>
+            @if (editing()) { <button mat-button (click)="reset()">Cancel</button> }
+          </div>
         </section>
       }
     </div>`,
@@ -93,17 +99,34 @@ export class Schedules implements OnInit {
   busy = signal(false);
   error = signal<unknown>(null);
   canSend = computed(() => this.auth.can('SendNotifications'));
-  m = {
-    name: '', companyId: '', applicationId: '', timeZone: 'Asia/Kolkata', kind: 'cron', cron: '0 9 * * MON-FRI', sequence: '0, 1440, 4320', startAt: '', endAt: '', maxRuns: null as number | null,
-    holidayCalendarId: '', workingDaysOnly: true, notificationType: '', templateCode: '', channels: [] as Channel[], email: '', mobile: '', userId: '', variables: '{\n  "CustomerName": "Ravi"\n}',
-  };
+  editing = signal<Schedule | null>(null);
+  @ViewChild('form', { read: ElementRef }) form?: ElementRef<HTMLElement>;
+  m = this.blank();
+
+  private blank() {
+    const companyId = this.lookups.companies().find(c => this.lookups.appsForCompany(c.id).length)?.id ?? '';
+    return {
+      name: '', companyId, applicationId: this.lookups.appsForCompany(companyId)[0]?.id ?? '', timeZone: 'Asia/Kolkata', kind: 'cron', cron: '0 9 * * MON-FRI', sequence: '0, 1440, 4320', startAt: '', endAt: '', maxRuns: null as number | null,
+      holidayCalendarId: '', workingDaysOnly: true, notificationType: '', templateCode: '', channels: [] as Channel[], email: '', mobile: '', userId: '', variables: '{\n  "CustomerName": "Ravi"\n}',
+    };
+  }
 
   ngOnInit() {
     this.load();
     this.api.holidayCalendars().subscribe({ next: c => this.calendars.set(c), error: () => undefined });
     if (this.auth.can('ViewTemplates')) this.api.notificationTypes().subscribe({ next: t => this.types.set(t), error: () => undefined });
-    this.m.companyId = this.lookups.companies().find(c => this.lookups.appsForCompany(c.id).length)?.id ?? '';
-    this.m.applicationId = this.lookups.appsForCompany(this.m.companyId)[0]?.id ?? '';
+  }
+  reset() { this.editing.set(null); this.m = this.blank(); }
+  edit(s: Schedule) {
+    const r = (s.request ?? {}) as { notificationType?: string; templateCode?: string; channels?: Channel[]; recipient?: Record<string, string>; variables?: unknown };
+    this.editing.set(s);
+    this.m = {
+      name: s.name, companyId: s.companyId, applicationId: s.applicationId, timeZone: s.timeZone, kind: s.cronExpression ? 'cron' : 'sequence', cron: s.cronExpression ?? '', sequence: (s.sequence ?? []).join(', '),
+      startAt: toLocalInput(s.startAt), endAt: toLocalInput(s.endAt), maxRuns: s.maxRuns ?? null, holidayCalendarId: s.holidayCalendarId ?? '', workingDaysOnly: s.workingDaysOnly,
+      notificationType: r.notificationType ?? '', templateCode: r.templateCode ?? '', channels: r.channels ?? [], email: r.recipient?.['email'] ?? '', mobile: r.recipient?.['mobile'] ?? '', userId: r.recipient?.['userId'] ?? '',
+      variables: r.variables ? JSON.stringify(r.variables, null, 2) : '',
+    };
+    setTimeout(() => this.form?.nativeElement.scrollIntoView({ behavior: 'smooth', block: 'start' }));
   }
   load() { this.api.schedules().subscribe({ next: s => this.schedules.set(s), error: e => this.error.set(e) }); }
   calName(id: string) { return this.calendars().find(c => c.id === id)?.name ?? 'holiday calendar'; }
@@ -114,22 +137,25 @@ export class Schedules implements OnInit {
       if (r) this.api.deleteSchedule(s.id).subscribe({ next: () => this.load(), error: e => this.error.set(e) });
     });
   }
-  create() {
+  save() {
     let variables: unknown = null;
     try { variables = this.m.variables.trim() ? JSON.parse(this.m.variables) : null; } catch (e) { this.error.set(new Error('Variables must be valid JSON: ' + (e as Error).message)); return; }
-    const m = this.m;
-    const recipient = Object.fromEntries(Object.entries({ email: m.email, mobile: m.mobile, userId: m.userId }).filter(([, v]) => !!v.trim()));
+    const m = this.m, current = this.editing();
+    // Keep anything the form does not show, such as a contact id or attachments on the stored request.
+    const stored = (current?.request ?? {}) as Record<string, unknown>;
+    const { email: _e, mobile: _m, userId: _u, ...otherRecipient } = (stored['recipient'] ?? {}) as Record<string, unknown>;
+    const recipient = { ...otherRecipient, ...Object.fromEntries(Object.entries({ email: m.email, mobile: m.mobile, userId: m.userId }).filter(([, v]) => !!v.trim())) };
     const body = {
       companyId: m.companyId, applicationId: m.applicationId, name: m.name, timeZone: m.timeZone, cronExpression: m.kind === 'cron' ? m.cron : null,
       sequenceOffsetsMinutes: m.kind === 'sequence' ? m.sequence.split(',').map(x => Number(x.trim())).filter(x => !isNaN(x)) : null,
       startAt: m.startAt ? new Date(m.startAt).toISOString() : null, endAt: m.endAt ? new Date(m.endAt).toISOString() : null, maxRuns: m.maxRuns || null,
       workingDaysOnly: m.workingDaysOnly, holidayCalendarId: m.holidayCalendarId || null,
-      notification: { companyId: m.companyId, applicationId: m.applicationId, notificationType: m.notificationType || null, templateCode: m.templateCode || null,
+      notification: { ...stored, companyId: m.companyId, applicationId: m.applicationId, notificationType: m.notificationType || null, templateCode: m.templateCode || null,
         channels: m.channels.length ? m.channels : null, recipient, variables },
     };
     this.busy.set(true); this.error.set(null);
-    this.api.createSchedule(body).subscribe({
-      next: r => { this.busy.set(false); this.snack.open(`Schedule created; next run ${r.nextRunAt ? new Date(r.nextRunAt).toLocaleString() : 'not scheduled'}`, 'OK', { duration: 4000 }); this.load(); },
+    (current ? this.api.updateSchedule(current.id, body) : this.api.createSchedule(body)).subscribe({
+      next: r => { this.busy.set(false); this.snack.open(`Schedule ${current ? 'saved' : 'created'}; next run ${r.nextRunAt ? new Date(r.nextRunAt).toLocaleString() : 'not scheduled'}`, 'OK', { duration: 4000 }); this.reset(); this.load(); },
       error: e => { this.busy.set(false); this.error.set(e); },
     });
   }

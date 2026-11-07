@@ -2784,6 +2784,10 @@ namespace Wings.NotificationHub.Infrastructure.Data.Migrations
                     b.Property<DateTime?>("ExpiresAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("Note")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
                     b.Property<bool>("PromotionalOnly")
                         .HasColumnType("bit");
 

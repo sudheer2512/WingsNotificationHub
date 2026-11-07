@@ -23,7 +23,7 @@ import { problemText } from '../core/errors';
 import { DELIVERY_STATUSES, DeliveryDetail, ExplorerRow, Timeline } from '../core/models';
 import { RealtimeService } from '../core/realtime.service';
 import { FilterModel, ScopeFilters, emptyFilters, filterQuery } from '../shared/filters';
-import { Tone, UI, toneOf } from '../shared/ui';
+import { Tone, UI, humanize, toneOf } from '../shared/ui';
 import { confirmDialog } from '../shared/widgets';
 
 type SortKey = '' | 'createdAt' | 'attempts' | 'cost';
@@ -273,8 +273,8 @@ export class Explorer implements OnInit {
     const x = this.detail();
     if (!x) return [];
     const items: { at: string; title: string; detail?: string | null; meta?: string; tone: Tone }[] = [];
-    for (const e of x.events) items.push({ at: e.recordedAt, title: e.status ? `${humanType(e.type)} → ${e.status}` : humanType(e.type), detail: e.detail, meta: `source: ${e.source}`, tone: e.status ? toneOf(e.status) : 'info' });
-    for (const a of x.attempts) items.push({ at: a.startedAt, title: `Attempt ${a.attemptNumber} via ${a.provider ?? 'provider'}: ${a.outcome ?? 'in progress'}`,
+    for (const e of x.events) items.push({ at: e.recordedAt, title: e.status ? `${humanType(e.type)} → ${humanize(e.status)}` : humanType(e.type), detail: e.detail, meta: `source: ${e.source}`, tone: e.status ? toneOf(e.status) : 'info' });
+    for (const a of x.attempts) items.push({ at: a.startedAt, title: `Attempt ${a.attemptNumber} via ${a.provider ?? 'provider'}: ${a.outcome ? humanize(a.outcome) : 'in progress'}`,
       detail: a.errorMessage ?? null, meta: [a.responseCode && `code ${a.responseCode}`, a.durationMs != null && `${a.durationMs} ms`].filter(Boolean).join(' · '),
       tone: a.outcome === 'Accepted' ? 'good' : a.outcome === 'TransientFailure' || a.outcome === 'Throttled' ? 'warn' : a.outcome ? 'bad' : 'info' });
     return items.sort((a, b) => a.at.localeCompare(b.at));

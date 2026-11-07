@@ -51,7 +51,7 @@ public static class TemplateEndpoints
             if (channel is { } ch) query = query.Where(x => x.Channel == ch);
             if (!string.IsNullOrWhiteSpace(code)) query = query.Where(x => x.Code == code.ToUpper());
             if (status is { } st) query = query.Where(x => x.Status == st);
-            if (!string.IsNullOrWhiteSpace(q)) query = query.Where(x => x.Code.Contains(q.ToUpper()) || x.Name.Contains(q));
+            if (!string.IsNullOrWhiteSpace(q)) query = query.Where(x => x.Code.Contains(q.ToUpper()) || x.Name.ToLower().Contains(q.ToLower()));
             var rows = await query.OrderBy(x => x.Code).ThenBy(x => x.Channel).Take(1000).ToListAsync(ctx.RequestAborted);
             var activeIds = rows.Where(r => r.ActiveVersionId != null).Select(r => r.ActiveVersionId!.Value).ToList();
             var vars = await db.TemplateVariables.AsNoTracking().Where(v => activeIds.Contains(v.TemplateVersionId)).ToListAsync(ctx.RequestAborted);
@@ -82,11 +82,14 @@ public static class TemplateEndpoints
             }));
         }).WithSummary("Tenant → company → application → category → template tree");
 
-        g.MapGet("/{id:guid}", async (Guid id, HttpContext ctx, TemplateService svc) =>
+        g.MapGet("/{id:guid}", async (Guid id, HttpContext ctx, TemplateService svc, NotificationHubDbContext db) =>
         {
             var t = await svc.LoadAsync(await ctx.CallerAsync(), id, Permission.ViewTemplates, ctx.RequestAborted);
+            var userIds = t.Versions.SelectMany(v => new[] { v.CreatedBy, v.SubmittedBy, v.ApprovedBy }).Select(a => Guid.TryParse(a, out var u) ? u : (Guid?)null).OfType<Guid>().Distinct().ToList();
+            var actors = await db.AdminUsers.AsNoTracking().Where(u => userIds.Contains(u.Id)).ToDictionaryAsync(u => u.Id.ToString(), u => u.DisplayName, ctx.RequestAborted);
             return Results.Ok(new
             {
+                actors,
                 template = Summary(t, t.Versions.FirstOrDefault(v => v.Id == t.ActiveVersionId)?.Variables ?? []),
                 versions = t.Versions.OrderByDescending(v => v.VersionNumber).Select(v => new
                 {
@@ -152,9 +155,16 @@ public static class TemplateEndpoints
             {
                 ApplicationId = appId, CompanyId = req.CompanyId, TemplateCode = t.Code, Channels = [t.Channel], Recipient = req.Recipient, Variables = req.Variables,
                 Metadata = new Dictionary<string, string> { ["testSend"] = "true" },
-            }, RequestSource.TestSend, null, ctx.RequestAborted);
+            }, RequestSource.TestSend, new AcceptOptions { RequiredPermission = Permission.ManageTemplates }, ctx.RequestAborted);
             return Results.Ok(new { delivered = true, resp });
         }).WithSummary("Send a test message using the template");
+
+        g.MapGet("/{id:guid}/whatsapp-accounts", async (Guid id, HttpContext ctx, TemplateService svc, NotificationHubDbContext db) =>
+        {
+            var t = await svc.LoadAsync(await ctx.CallerAsync(), id, Permission.ManageTemplates, ctx.RequestAborted);
+            return Results.Ok(await db.ProviderAccounts.AsNoTracking().Where(a => a.Channel == Channel.WhatsApp && (a.TenantId == null || a.TenantId == t.TenantId))
+                .OrderBy(a => a.Name).Select(a => new { a.Id, a.Name, a.ProviderType }).ToListAsync(ctx.RequestAborted));
+        }).WithSummary("WhatsApp accounts this template can be submitted through (names only; no provider access needed)");
 
         g.MapPost("/{id:guid}/whatsapp-submit", async (Guid id, WhatsAppSubmitRequest req, HttpContext ctx, TemplateService svc) =>
             Results.Ok(new { status = await svc.SubmitToWhatsAppAsync(await ctx.CallerAsync(), id, req.Version, req.ProviderAccountId, ctx.RequestAborted) }))

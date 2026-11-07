@@ -16,7 +16,7 @@ import { ApiService } from '../core/api.service';
 import { AuthService } from '../core/auth.service';
 import { problemText } from '../core/errors';
 import { LookupsService } from '../core/lookups.service';
-import { AdminUser, TemplateDetail, TemplateVersion, TreeNode } from '../core/models';
+import { TemplateDetail, TemplateVersion, TreeNode } from '../core/models';
 import { UI } from '../shared/ui';
 import { confirmDialog } from '../shared/widgets';
 import { CloneTemplateDialog, CreateTemplateDialog, NotificationTypesDialog, TestSendDialog, WhatsAppSubmitDialog } from './template-dialogs';
@@ -165,7 +165,6 @@ export class TemplateManager implements OnInit {
   dirty = signal(false);
   viewing = signal<TemplateVersion | null>(null);
   selectedId = signal<string | null>(null);
-  users = signal<Map<string, string>>(new Map());
 
   latest = computed(() => this.detail()?.versions[0] ?? null);
   canManage = computed(() => this.auth.can('ManageTemplates'));
@@ -175,7 +174,6 @@ export class TemplateManager implements OnInit {
     this.loadTree();
     const id = this.id();
     if (id) this.select(id);
-    if (this.auth.can('ManageUsers')) this.api.users().subscribe({ next: (u: AdminUser[]) => this.users.set(new Map(u.map(x => [x.id, x.displayName]))), error: () => undefined });
   }
 
   loadTree() {
@@ -208,7 +206,7 @@ export class TemplateManager implements OnInit {
   who(actor?: string | null) {
     if (!actor) return '';
     if (actor === this.auth.me()?.actorId) return 'you';
-    return this.users().get(actor) ?? actor;
+    return this.detail()?.actors?.[actor] ?? (actor.startsWith('credential:') ? 'API client' : 'Unknown user');
   }
 
   isOwn(v: TemplateVersion) { const me = this.auth.me()?.actorId; return !!me && (v.createdBy === me || v.submittedBy === me); }

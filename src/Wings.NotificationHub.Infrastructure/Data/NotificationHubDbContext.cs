@@ -313,7 +313,11 @@ public sealed class NotificationHubDbContext(DbContextOptions<NotificationHubDbC
             e.HasIndex(x => new { x.ContactId, x.Channel, x.Purpose, x.CapturedAt });
             e.Property(x => x.Evidence).HasMaxLength(2000);
         });
-        m.Entity<Suppression>(e => e.HasIndex(x => new { x.TenantId, x.Channel, x.Address }));
+        m.Entity<Suppression>(e =>
+        {
+            e.HasIndex(x => new { x.TenantId, x.Channel, x.Address });
+            e.Property(x => x.Note).HasMaxLength(500);
+        });
         m.Entity<RecipientGroup>(e =>
         {
             e.HasIndex(x => new { x.CompanyId, x.Name }).IsUnique();

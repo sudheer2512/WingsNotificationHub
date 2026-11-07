@@ -56,6 +56,7 @@ public enum Permission
     ManageWebhooks,
     EmergencySuspend,
     ManageUsers,
+    AcknowledgeAlerts,
 }
 
 public static class RolePermissions
@@ -75,12 +76,12 @@ public static class RolePermissions
             .. ReadAll, Permission.ViewMessageContent, Permission.ViewAudit, Permission.SendNotifications, Permission.RetryDeliveries,
             Permission.CancelNotifications, Permission.ManageTemplates, Permission.ApproveTemplates, Permission.ManageProviders,
             Permission.ApproveProviderChanges, Permission.ManageRules, Permission.ManageCampaigns, Permission.ApproveCampaigns,
-            Permission.ManageContacts, Permission.ManageInbox, Permission.ManageWebhooks, Permission.EmergencySuspend,
+            Permission.ManageContacts, Permission.ManageInbox, Permission.ManageWebhooks, Permission.EmergencySuspend, Permission.AcknowledgeAlerts,
         ],
         [Roles.ApplicationAdmin] =
         [
             .. ReadAll, Permission.ViewMessageContent, Permission.SendNotifications, Permission.RetryDeliveries, Permission.CancelNotifications,
-            Permission.ManageTemplates, Permission.ManageRules, Permission.ManageContacts, Permission.ManageWebhooks, Permission.ManageCredentials,
+            Permission.ManageTemplates, Permission.ManageRules, Permission.ManageContacts, Permission.ManageWebhooks, Permission.ManageCredentials, Permission.AcknowledgeAlerts,
         ],
         [Roles.TemplateDesigner] = [Permission.ViewDashboard, Permission.ViewTemplates, Permission.ManageTemplates, Permission.ViewTenancy, Permission.ViewRules],
         [Roles.TemplateApprover] = [Permission.ViewDashboard, Permission.ViewTemplates, Permission.ApproveTemplates, Permission.ViewTenancy],
@@ -93,6 +94,7 @@ public static class RolePermissions
         [
             Permission.ViewDashboard, Permission.ViewNotifications, Permission.ViewMessageContent, Permission.RetryDeliveries, Permission.CancelNotifications,
             Permission.ViewProviders, Permission.ViewMonitoring, Permission.ViewInbox, Permission.ManageInbox, Permission.ViewTenancy, Permission.ViewCampaigns,
+            Permission.AcknowledgeAlerts,
         ],
         // Auditors see metadata, audit trails and reports, but not message bodies or unmasked addresses.
         [Roles.Auditor] = [.. ReadAll, Permission.ViewAudit],

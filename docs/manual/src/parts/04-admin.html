@@ -175,7 +175,7 @@
 <h2 id="ch-users" class="flow" data-ix="Users and roles|Grant role|Add user|Reset password">Users and roles</h2>
 <p class="lead">People get into the console through a user account and one or more role grants. Each grant has a scope: grant the narrowest that works.</p>
 <div class="who"><b>Who can do this:</b> platform and tenant administrators. A tenant administrator cannot grant <b>Platform administrator</b>, or grant anything outside the tenant.</div>
-<fig src="users.jpg" cap="Users &amp; roles: each person's sign-in type, last login and role grants. Email addresses are blurred here."/>
+<fig src="users.jpg" cap="Users &amp; roles: each person's sign-in type, last login and role grants, with edit and disable buttons. Email addresses are blurred here."/>
 <h3 id="sec-u-add" data-ix="Create user">Adding a user</h3>
 <ol class="steps">
   <li>Under <b>Add user</b>, enter the <b>Email</b> and <b>Display name</b>.</li>
@@ -184,6 +184,7 @@
   <li>Set the scope: <b>Tenant</b>, <b>Company</b>, <b>Application</b> and <b>Channel</b>. Leave <b>All companies</b>, <b>All applications</b> and <b>All channels</b> for the widest.</li>
   <li>Select <b>Create user</b>. Give the person their password by a safe route.</li>
 </ol>
+<p>Each email address can belong to one user only. If it is already in use you see <code>A user with this email already exists. Use Grant on their row to add a role.</code>, and the existing account is not changed.</p>
 <h3 id="sec-u-grant" data-ix="Remove role">Granting or removing a role</h3>
 <ol class="steps">
   <li>To grant, select <b>Grant</b> on the person's row. The form changes to <b>Grant a role to …</b>.</li>
@@ -191,7 +192,12 @@
   <li>To remove, select the <b>×</b> on the role and confirm with <b>Remove</b>.</li>
 </ol>
 <fig src="users-grant.jpg" w="86" cap="Granting a second role to a user."/>
-<aside class="note"><p>The console has no button to disable a user: remove all of a person's roles and they see <code>No screens available</code> when they sign in.</p><p>It has no password reset either. Using <b>Add user</b> with the person's existing email and a new password replaces the password. It also adds the role in the form, so remove that grant afterwards if it is not wanted.</p></aside>
+<h3 id="sec-u-manage" data-ix="Disable user|Enable user|Set a password">Changing an account</h3>
+<ol class="steps">
+  <li>To rename someone or set a new password, select the edit icon on their row. Change the <b>Display name</b> or enter a <b>New password</b> of at least 12 characters, then select <b>Save</b>. Leave the password empty to keep the current one.</li>
+  <li>To stop someone signing in, select <b>Disable</b> and confirm. They are signed out at once. Their roles are kept, so <b>Enable</b> brings the account back as it was.</li>
+</ol>
+<aside class="note"><p>These buttons appear only where you manage every role the person holds, so a tenant administrator cannot change a platform administrator or someone who also works in another tenant. You cannot disable your own account. Someone who signs in through your identity provider has no password here.</p></aside>
 
 <h2 id="ch-webhooks" data-ix="Webhooks|Signing secret|Signature">Webhooks</h2>
 <p class="lead">Webhooks tell your applications what happened, as it happens: a status changed, a notification finished, a customer replied. Each call is signed so the application can trust it.</p>
@@ -297,7 +303,7 @@
 
 <h2 id="ch-monitoring" class="flow" data-ix="System monitoring|Alerts|Workers|Circuit breaker">System monitoring</h2>
 <p class="lead">This screen shows whether the hub itself is healthy. It refreshes every 15 seconds.</p>
-<div class="who"><b>Who can do this:</b> administrators, notification operators and auditors can read it and acknowledge alerts. <b>Requeue</b> is for platform administrators and notification operators.</div>
+<div class="who"><b>Who can do this:</b> administrators, notification operators and auditors can read it. Everyone except auditors can acknowledge alerts. <b>Requeue</b> is for platform administrators, tenant administrators and notification operators who cover a whole tenant.</div>
 <fig src="monitoring.jpg" cap="System monitoring: summary cards, queues, workers and open alerts."/>
 <div class="tw"><table>
 <thead><tr><th style="width:24%">Panel or card</th><th>What it tells you</th><th style="width:32%">What to do</th></tr></thead>

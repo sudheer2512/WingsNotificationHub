@@ -204,7 +204,7 @@ public sealed class ReconciliationWorker(IServiceScopeFactory scopes, WorkerStat
         var parkedCutoff = now.AddSeconds(-3);
         var parked = await db.DeliveryEvents.AsNoTracking()
             .Where(e => e.DeliveryId == null && e.ProviderMessageId != null && e.RecordedAt < parkedCutoff)
-            .Select(e => new { e.ProviderAccountId, e.ProviderMessageId }).Distinct().Take(100).ToListAsync(ct);
+            .Select(e => new { e.ProviderAccountId, e.ProviderMessageId }).Distinct().OrderBy(e => e.ProviderMessageId).Take(100).ToListAsync(ct);
         foreach (var p in parked)
         {
             var d = await db.NotificationDeliveries.FirstOrDefaultAsync(x => x.ProviderAccountId == p.ProviderAccountId && x.ProviderMessageId == p.ProviderMessageId, ct);

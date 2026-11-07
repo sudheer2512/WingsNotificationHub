@@ -140,16 +140,17 @@ public sealed class DeliveryStatusUpdater(NotificationHubDbContext db, UsageServ
     }
 
     /// <summary>Adds an address to the tenant suppression list (bounces, complaints, invalid numbers, STOP replies).</summary>
-    public async Task SuppressAsync(Guid tenantId, Guid? companyId, Channel channel, string address, SuppressionReason reason, string source, CancellationToken ct)
+    /// <param name="keepCompany">An operator chose the scope. Otherwise bounces and complaints apply to the whole tenant, because they describe the address itself.</param>
+    public async Task SuppressAsync(Guid tenantId, Guid? companyId, Channel channel, string address, SuppressionReason reason, string source, CancellationToken ct, string? note = null, bool keepCompany = false)
     {
         var normalized = Addressing.Normalize(channel, address);
-        var exists = await db.Suppressions.AnyAsync(s => s.TenantId == tenantId && s.Channel == channel && s.Address == normalized && s.Reason == reason, ct)
-                     || db.Suppressions.Local.Any(s => s.TenantId == tenantId && s.Channel == channel && s.Address == normalized && s.Reason == reason);
+        var scope = keepCompany || reason is SuppressionReason.Unsubscribe or SuppressionReason.OptOut ? companyId : null;
+        var exists = await db.Suppressions.AnyAsync(s => s.TenantId == tenantId && s.CompanyId == scope && s.Channel == channel && s.Address == normalized && s.Reason == reason, ct)
+                     || db.Suppressions.Local.Any(s => s.TenantId == tenantId && s.CompanyId == scope && s.Channel == channel && s.Address == normalized && s.Reason == reason);
         if (exists) return;
         db.Suppressions.Add(new Suppression
         {
-            TenantId = tenantId, CompanyId = reason is SuppressionReason.Unsubscribe or SuppressionReason.OptOut ? companyId : null,
-            Channel = channel, Address = normalized, Reason = reason, PromotionalOnly = reason == SuppressionReason.Unsubscribe, Source = source,
+            TenantId = tenantId, CompanyId = scope, Channel = channel, Address = normalized, Reason = reason, PromotionalOnly = reason == SuppressionReason.Unsubscribe, Source = source, Note = note,
         });
     }
 

@@ -69,7 +69,7 @@
 <tr><td><code>{{#each Items}}{{@index}}. {{this.Name}}{{/each}}</code></td><td>Repeat for each list item</td></tr>
 <tr><td><code>{{! internal note }}</code></td><td>Comment, not rendered</td></tr>
 </tbody></table></div>
-<aside class="warn"><p>Every <code>{{#if}}</code>, <code>{{#unless}}</code> and <code>{{#each}}</code> needs its closing tag. While a block is unclosed, <b>Live preview</b> shows <code>An unexpected error occurred.</code> Close the block and the preview recovers.</p></aside>
+<aside class="warn"><p>Every <code>{{#if}}</code>, <code>{{#unless}}</code> and <code>{{#each}}</code> needs its closing tag. While a block is unclosed, <b>Live preview</b> says so, for example <code>Unclosed '#if' block (line 1, column 4)</code>.</p></aside>
 
 <h2 id="app-roles" appendix="1" data-ix="Role matrix|Permissions">Role and permission matrix</h2>
 <p class="lead">What each role can do within its scope. Platform and tenant administrators hold every permission; the differences for them are noted below the table.</p>
@@ -104,11 +104,12 @@
 <tr><td>Manage tenancy, applications, calendars</td><td><y/></td><td><y/></td><td><n/></td><td><n/></td><td><n/></td><td><n/></td><td><n/></td><td><n/></td><td><n/></td></tr>
 <tr><td>Manage client credentials</td><td><y/></td><td><y/></td><td><n/></td><td><y/></td><td><n/></td><td><n/></td><td><n/></td><td><n/></td><td><n/></td></tr>
 <tr><td>Manage webhooks</td><td><y/></td><td><y/></td><td><y/></td><td><y/></td><td><n/></td><td><n/></td><td><n/></td><td><n/></td><td><n/></td></tr>
+<tr><td>Acknowledge alerts</td><td><y/></td><td><y/></td><td><y/></td><td><y/></td><td><n/></td><td><n/></td><td><n/></td><td><y/></td><td><n/></td></tr>
 <tr><td>Emergency suspension</td><td><y/></td><td><y/></td><td><y/></td><td><n/></td><td><n/></td><td><n/></td><td><n/></td><td><n/></td><td><n/></td></tr>
 <tr><td>Manage users and roles</td><td><y/></td><td><y/></td><td><n/></td><td><n/></td><td><n/></td><td><n/></td><td><n/></td><td><n/></td><td><n/></td></tr>
 </tbody></table></div>
 <p><b>Platform administrator only:</b> create tenants, create shared providers, top up credits, change billing and cost rates, suspend tenants, grant the Platform administrator role, create platform-wide calendars and routing rules, and see <b>Simulate reply</b>.</p>
-<p><b>Requeue dead letters:</b> platform administrators and notification operators. Tenant administrators do not have this button.</p>
+<p><b>Requeue dead letters:</b> platform administrators, tenant administrators and notification operators. It needs a grant that covers a whole tenant, because queues are shared.</p>
 
 <h2 id="app-trouble" appendix="1" data-ix="Troubleshooting|Error messages">Troubleshooting</h2>
 <h3 id="tr-notdelivered">A message wasn't delivered: what do I check?</h3>
@@ -144,15 +145,17 @@
 <thead><tr><th style="width:50%">Message</th><th>What it means</th></tr></thead>
 <tbody>
 <tr><td><code>Invalid email or password.</code></td><td>Sign-in failed. Check both, or ask your administrator.</td></tr>
-<tr><td><code>You do not have access to this resource.</code></td><td>Your role cannot do this, even though the button is visible.</td></tr>
+<tr><td><code>You do not have access to this resource.</code></td><td>Your role cannot do this. Ask an administrator.</td></tr>
 <tr><td><code>The notification could not be rendered.</code></td><td>A required template variable is missing.</td></tr>
 <tr><td><code>None of the requested channels could be addressed for the recipient(s).</code></td><td>The recipient has no address for the chosen channels.</td></tr>
 <tr><td><code>The template is invalid. body: Template HTML contains a disallowed construct</code></td><td>Remove the script, event handler, frame or <code>javascript:</code> link.</td></tr>
 <tr><td><code>The rule is invalid.</code></td><td>The message lists what to complete.</td></tr>
 <tr><td><code>Invalid cron expression</code></td><td>Check the five fields of the schedule.</td></tr>
 <tr><td><code>Passwords must be at least 12 characters.</code></td><td>Enter a longer password.</td></tr>
+<tr><td><code>A user with this email already exists.</code></td><td>Select <b>Grant</b> on the person's row to add a role.</td></tr>
+<tr><td><code>… schedule(s) use this calendar.</code></td><td>Choose another calendar for those schedules, then delete it.</td></tr>
 <tr><td><code>The provider account does not support template submission.</code></td><td>Choose a real WhatsApp account, not a Mock one.</td></tr>
-<tr><td><code>An unexpected error occurred.</code></td><td>Something failed inside the hub. In <b>Live preview</b>, first check for an unclosed block. Otherwise quote the correlation id to support.</td></tr>
+<tr><td><code>An unexpected error occurred.</code></td><td>Something failed inside the hub. Quote the correlation id to support.</td></tr>
 </tbody></table></div>
 <h4 id="tr-app">Errors your application sees</h4>
 <div class="tw"><table>

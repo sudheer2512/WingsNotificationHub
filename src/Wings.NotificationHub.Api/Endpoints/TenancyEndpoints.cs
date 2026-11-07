@@ -19,7 +19,8 @@ public sealed record CompanyRequest(Guid TenantId, string Code, string Name, str
 public sealed record ApplicationRequest(Guid TenantId, string Code, string Name, string? Description, bool Sandbox, List<Channel>? AllowedChannels, string DefaultLocale = "en", int RateLimitPerMinute = 600);
 public sealed record LinkRequest(Guid CompanyId, bool Enabled = true, Dictionary<string, Guid>? DefaultSenders = null);
 public sealed record CredentialRequest(string Name, List<string>? Scopes, List<Guid>? AllowedCompanyIds, bool IsAiAgent, DateTime? ExpiresAt);
-public sealed record UserRequest(string Email, string DisplayName, string? Password, List<RoleAssignmentRequest> Roles);
+public sealed record UserRequest(string Email, string DisplayName, string? Password, List<RoleAssignmentRequest>? Roles);
+public sealed record UserUpdateRequest(string? DisplayName, string? Password, bool? Enabled);
 public sealed record RoleAssignmentRequest(string Role, Guid? TenantId, Guid? CompanyId, Guid? ApplicationId, Channel? Channel);
 public sealed record QuotaRequest(Guid TenantId, Guid? CompanyId, Guid? ApplicationId, Channel? Channel, int MonthlyLimit, int AlertThresholdPercent = 80);
 public sealed record CostRateRequest(Guid? ProviderAccountId, Channel Channel, string? CountryPrefix, MessageClass? MessageClass, decimal UnitCost, string Currency = "INR");
@@ -200,33 +201,76 @@ public static class TenancyEndpoints
             var caller = await ctx.CallerAsync();
             var users = await db.AdminUsers.AsNoTracking().ToListAsync(ctx.RequestAborted);
             var roles = await db.RoleAssignments.AsNoTracking().ToListAsync(ctx.RequestAborted);
-            return Results.Ok(users.Select(u => new { u.Id, u.Email, u.DisplayName, u.Enabled, u.LastLoginAt, external = u.ExternalSubject != null, roles = roles.Where(r => r.UserId == u.Id) })
+            var byUser = roles.ToLookup(r => r.UserId);
+            return Results.Ok(users.Select(u => new { u.Id, u.Email, u.DisplayName, u.Enabled, u.LastLoginAt, external = u.ExternalSubject != null, roles = byUser[u.Id].ToList(), canManage = CanManageAccount(caller, byUser[u.Id].ToList()) })
                 .Where(u => caller.IsPlatformAdmin || u.roles.Any(r => caller.Can(Permission.ManageUsers, r.TenantId, r.CompanyId))));
         });
         g.MapPost("/users", async (UserRequest req, HttpContext ctx, NotificationHubDbContext db, AuditService audit) =>
         {
             var caller = await ctx.CallerAsync();
-            foreach (var r in req.Roles)
-            {
-                if (!Roles.All.Contains(r.Role)) throw HubException.Validation($"Unknown role '{r.Role}'.");
-                if (r.TenantId is null ? !caller.IsPlatformAdmin : !caller.Can(Permission.ManageUsers, r.TenantId, r.CompanyId)) throw new AccessDeniedException("You cannot grant a role outside your own scope.");
-                if (r.Role == Roles.PlatformAdmin && !caller.IsPlatformAdmin) throw new AccessDeniedException();
-            }
+            var roles = req.Roles ?? [];
+            foreach (var r in roles) EnsureCanGrant(caller, r);
             var email = req.Email.Trim().ToLowerInvariant();
-            var u = await db.AdminUsers.FirstOrDefaultAsync(x => x.Email == email, ctx.RequestAborted);
-            if (u is null) db.AdminUsers.Add(u = new AdminUser { Email = email, DisplayName = req.DisplayName });
-            u.DisplayName = req.DisplayName;
-            if (!string.IsNullOrEmpty(req.Password))
-            {
-                if (req.Password.Length < 12) throw HubException.Validation("Passwords must be at least 12 characters.");
-                u.PasswordHash = Hashing.HashPassword(req.Password);
-            }
-            foreach (var r in req.Roles)
+            if (!Core.Addressing.IsValidEmail(email)) throw HubException.Validation("Enter a valid email address.");
+            if (string.IsNullOrWhiteSpace(req.DisplayName)) throw HubException.Validation("displayName is required.");
+            // Creating never touches an existing account: changing one needs the checks in PUT /users/{id}.
+            if (await db.AdminUsers.AnyAsync(x => x.Email == email, ctx.RequestAborted))
+                throw HubException.Conflict("user_exists", "A user with this email already exists. Use Grant on their row to add a role.");
+            var u = new AdminUser { Email = email, DisplayName = req.DisplayName.Trim() };
+            if (!string.IsNullOrEmpty(req.Password)) u.PasswordHash = HashNewPassword(req.Password);
+            db.AdminUsers.Add(u);
+            foreach (var r in roles)
                 db.RoleAssignments.Add(new RoleAssignment { UserId = u.Id, Role = r.Role, TenantId = r.TenantId, CompanyId = r.CompanyId, ApplicationId = r.ApplicationId, Channel = r.Channel });
-            audit.Record(caller, "user.upserted", nameof(AdminUser), u.Id.ToString(), $"{email}: {string.Join(", ", req.Roles.Select(r => r.Role))}", req.Roles.FirstOrDefault()?.TenantId);
+            audit.Record(caller, "user.created", nameof(AdminUser), u.Id.ToString(), $"{email}: {string.Join(", ", roles.Select(r => r.Role))}", roles.FirstOrDefault()?.TenantId);
             await db.SaveChangesAsync(ctx.RequestAborted);
             return Results.Ok(new { u.Id });
         }).WithSummary("Create a user (local password or external OIDC by e-mail) and grant scoped roles");
+        g.MapPost("/users/{id:guid}/roles", async (Guid id, RoleAssignmentRequest req, HttpContext ctx, NotificationHubDbContext db, AuditService audit) =>
+        {
+            var caller = await ctx.CallerAsync();
+            EnsureCanGrant(caller, req);
+            var u = await db.AdminUsers.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id, ctx.RequestAborted) ?? throw HubException.NotFound("User");
+            var held = await db.RoleAssignments.AnyAsync(r => r.UserId == id && r.Role == req.Role && r.TenantId == req.TenantId && r.CompanyId == req.CompanyId && r.ApplicationId == req.ApplicationId && r.Channel == req.Channel, ctx.RequestAborted);
+            if (!held)
+            {
+                db.RoleAssignments.Add(new RoleAssignment { UserId = id, Role = req.Role, TenantId = req.TenantId, CompanyId = req.CompanyId, ApplicationId = req.ApplicationId, Channel = req.Channel });
+                audit.Record(caller, "user.role_granted", nameof(AdminUser), id.ToString(), $"{u.Email}: {req.Role}", req.TenantId, req.CompanyId);
+                await db.SaveChangesAsync(ctx.RequestAborted);
+            }
+            return Results.Ok(new { u.Id });
+        }).WithSummary("Grant a scoped role to an existing user");
+        g.MapPut("/users/{id:guid}", async (Guid id, UserUpdateRequest req, HttpContext ctx, NotificationHubDbContext db, AuditService audit) =>
+        {
+            var caller = await ctx.CallerAsync();
+            var u = await db.AdminUsers.FirstOrDefaultAsync(x => x.Id == id, ctx.RequestAborted) ?? throw HubException.NotFound("User");
+            var roles = await db.RoleAssignments.AsNoTracking().Where(r => r.UserId == id).ToListAsync(ctx.RequestAborted);
+            if (!CanManageAccount(caller, roles)) throw new AccessDeniedException("You can only change an account when every role it holds is within your scope.");
+            var changes = new List<string>();
+            if (req.DisplayName is { } name)
+            {
+                if (string.IsNullOrWhiteSpace(name)) throw HubException.Validation("displayName cannot be empty.");
+                if (name.Trim() != u.DisplayName) { u.DisplayName = name.Trim(); changes.Add("renamed"); }
+            }
+            if (!string.IsNullOrEmpty(req.Password))
+            {
+                if (u.ExternalSubject is not null) throw HubException.Validation("This account signs in through the identity provider, so it has no password here.");
+                u.PasswordHash = HashNewPassword(req.Password);
+                u.FailedLogins = 0; u.LockedUntil = null;
+                changes.Add("password reset");
+            }
+            if (req.Enabled is { } enabled && enabled != u.Enabled)
+            {
+                if (!enabled && id.ToString() == caller.ActorId) throw HubException.Validation("You cannot disable your own account.");
+                u.Enabled = enabled;
+                changes.Add(enabled ? "enabled" : "disabled");
+            }
+            if (changes.Count > 0)
+            {
+                audit.Record(caller, "user.updated", nameof(AdminUser), id.ToString(), $"{u.Email}: {string.Join(", ", changes)}", roles.FirstOrDefault()?.TenantId);
+                await db.SaveChangesAsync(ctx.RequestAborted);
+            }
+            return Results.Ok(new { u.Id, u.Enabled });
+        }).WithSummary("Rename an account, reset its password, or enable or disable it");
         g.MapDelete("/users/roles/{id:guid}", async (Guid id, HttpContext ctx, NotificationHubDbContext db, AuditService audit) =>
         {
             var caller = await ctx.CallerAsync();
@@ -432,6 +476,23 @@ public static class TenancyEndpoints
             return Results.Ok(new { decided = true, a.Status });
         }).WithSummary("Approve or reject a pending maker-checker request");
     }
+
+    private static void EnsureCanGrant(CallerContext caller, RoleAssignmentRequest r)
+    {
+        if (!Roles.All.Contains(r.Role)) throw HubException.Validation($"Unknown role '{r.Role}'.");
+        if (r.TenantId is null ? !caller.IsPlatformAdmin : !caller.Can(Permission.ManageUsers, r.TenantId, r.CompanyId)) throw new AccessDeniedException("You cannot grant a role outside your own scope.");
+        if (r.Role == Roles.PlatformAdmin && !caller.IsPlatformAdmin) throw new AccessDeniedException();
+    }
+
+    /// <summary>
+    /// Changing an account needs authority over every role it holds, so a tenant administrator cannot reach
+    /// a platform administrator or a user shared with another tenant.
+    /// </summary>
+    private static bool CanManageAccount(CallerContext caller, IReadOnlyCollection<RoleAssignment> roles)
+        => caller.IsPlatformAdmin || (roles.Count > 0 && roles.All(r => r.TenantId is not null && r.Role != Roles.PlatformAdmin && caller.Can(Permission.ManageUsers, r.TenantId, r.CompanyId)));
+
+    private static string HashNewPassword(string password)
+        => password.Length < 12 ? throw HubException.Validation("Passwords must be at least 12 characters.") : Hashing.HashPassword(password);
 
     private static Permission ApprovalPermission(ApprovalKind k) => k switch
     {

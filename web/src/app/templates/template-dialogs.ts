@@ -10,7 +10,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { ApiService } from '../core/api.service';
 import { AuthService } from '../core/auth.service';
 import { LookupsService } from '../core/lookups.service';
-import { CHANNELS, Channel, MESSAGE_CLASSES, NotificationType, PRIORITIES, TemplateSummary, TemplateVersion } from '../core/models';
+import { CHANNELS, Channel, MESSAGE_CLASSES, NotificationType, PRIORITIES, TemplateSummary, TemplateVersion, WhatsAppAccount } from '../core/models';
 import { UI } from '../shared/ui';
 import { extractVariables, isBuiltIn, sampleData } from './template-utils';
 
@@ -208,9 +208,10 @@ export class TestSendDialog {
     <h2 mat-dialog-title>Submit to WhatsApp</h2>
     <mat-dialog-content>
       <p class="small">Submits the provider template name, language, category and components to the WhatsApp Business account for approval. The approval status is recorded on the version.</p>
+      @if (providers()?.length === 0) { <div class="callout warn">No WhatsApp provider account is available. Ask an administrator to add one under Providers.</div> }
       <mat-form-field class="full"><mat-label>WhatsApp provider account</mat-label>
         <mat-select [(ngModel)]="providerAccountId">
-          @for (p of providers(); track p.id) { <mat-option [value]="p.id">{{ p.name }} ({{ p.providerType }})</mat-option> }
+          @for (p of providers() ?? []; track p.id) { <mat-option [value]="p.id">{{ p.name }} ({{ p.providerType }})</mat-option> }
         </mat-select></mat-form-field>
       <mat-form-field class="full"><mat-label>Version</mat-label>
         <mat-select [(ngModel)]="version">
@@ -224,14 +225,16 @@ export class TestSendDialog {
       <button mat-flat-button (click)="submit()" [disabled]="busy() || !providerAccountId || !version">Submit</button>
     </mat-dialog-actions>`,
 })
-export class WhatsAppSubmitDialog {
+export class WhatsAppSubmitDialog implements OnInit {
   private api = inject(ApiService);
-  lookups = inject(LookupsService);
   data = inject<{ template: TemplateSummary; versions: TemplateVersion[] }>(MAT_DIALOG_DATA);
-  providers = computed(() => this.lookups.providers().filter(p => p.channel === 'whatsapp'));
-  providerAccountId = this.providers()[0]?.id ?? '';
+  providers = signal<WhatsAppAccount[] | null>(null);
+  providerAccountId = '';
   version = this.data.versions[0]?.versionNumber;
   busy = signal(false); error = signal<unknown>(null); status = signal<string | null>(null);
+  ngOnInit() {
+    this.api.whatsAppAccounts(this.data.template.id).subscribe({ next: a => { this.providers.set(a); this.providerAccountId = a[0]?.id ?? ''; }, error: e => this.error.set(e) });
+  }
   submit() {
     this.busy.set(true); this.error.set(null);
     this.api.whatsAppSubmit(this.data.template.id, this.providerAccountId, this.version!).subscribe({

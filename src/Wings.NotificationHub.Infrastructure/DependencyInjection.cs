@@ -161,7 +161,13 @@ public sealed class DatabaseInitializer(NotificationHubDbContext db, IConfigurat
                 var dbFile = db.Database.IsSqlite() ? new Microsoft.Data.Sqlite.SqliteConnectionStringBuilder(db.Database.GetConnectionString()).DataSource : null;
                 if (dbFile is not null && Path.GetDirectoryName(Path.GetFullPath(dbFile)) is { } d) Directory.CreateDirectory(d);
                 await db.Database.EnsureCreatedAsync(ct);
-                if (db.Database.IsSqlite()) await db.Database.ExecuteSqlRawAsync("PRAGMA journal_mode=WAL;", ct);
+                if (db.Database.IsSqlite())
+                {
+                    await db.Database.ExecuteSqlRawAsync("PRAGMA journal_mode=WAL;", ct);
+                    // EnsureCreated leaves an existing development database as it is, so columns added since need adding here.
+                    var hasNote = await db.Database.SqlQueryRaw<int>("SELECT COUNT(*) AS Value FROM pragma_table_info('Suppressions') WHERE name = 'Note'").SingleAsync(ct);
+                    if (hasNote == 0) await db.Database.ExecuteSqlRawAsync("ALTER TABLE Suppressions ADD COLUMN Note TEXT NULL;", ct);
+                }
             }
         }
         await seeder.EnsureSystemDataAsync(ct);

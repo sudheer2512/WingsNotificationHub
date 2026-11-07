@@ -136,10 +136,13 @@ public sealed class WebhookDeliveryHandler(NotificationHubDbContext db, IHttpCli
             Success = result.Success, ResponseCode = result.Status, Error = result.Error, DurationMs = result.DurationMs,
         };
         db.WebhookDeliveryAttempts.Add(attempt);
-        if (result.Success) sub.ConsecutiveFailures = 0;
+        var row = db.WebhookSubscriptions.Where(s => s.Id == sub.Id);
+        if (result.Success) await row.ExecuteUpdateAsync(u => u.SetProperty(s => s.ConsecutiveFailures, 0), ct);
         else
         {
-            sub.ConsecutiveFailures++;
+            // Several workers can be failing the same endpoint at once; counting in the database loses none of them.
+            await row.ExecuteUpdateAsync(u => u.SetProperty(s => s.ConsecutiveFailures, s => s.ConsecutiveFailures + 1), ct);
+            var failures = await row.AsNoTracking().Select(s => s.ConsecutiveFailures).FirstAsync(ct);
             var retryable = result.Status is null or >= 500 or 408 or 429 && !(result.Error?.StartsWith("blocked") ?? false);
             if (retryable && m.Attempt < MaxAttempts)
             {
@@ -147,11 +150,11 @@ public sealed class WebhookDeliveryHandler(NotificationHubDbContext db, IHttpCli
                 attempt.NextRetryAt = DateTime.UtcNow.Add(delay);
                 Outbox.Add(db, MessageTypes.WebhookDeliver, m with { Attempt = m.Attempt + 1 }, sub.TenantId, attempt.NextRetryAt);
             }
-            if (sub.ConsecutiveFailures >= DisableAfterConsecutiveFailures)
+            if (failures >= DisableAfterConsecutiveFailures)
             {
                 sub.Enabled = false;
                 sub.DisabledAt = DateTime.UtcNow;
-                db.SystemAlerts.Add(new SystemAlert { TenantId = sub.TenantId, Severity = "error", Source = "webhooks", Key = $"webhook-disabled:{sub.Id}", Message = $"Webhook '{sub.Name}' was disabled after {sub.ConsecutiveFailures} consecutive failures." });
+                db.SystemAlerts.Add(new SystemAlert { TenantId = sub.TenantId, Severity = "error", Source = "webhooks", Key = $"webhook-disabled:{sub.Id}", Message = $"Webhook '{sub.Name}' was disabled after {failures} consecutive failures." });
             }
             logger.LogInformation("Webhook {Subscription} attempt {Attempt} for {EventType} failed: {Status} {Error}", sub.Id, m.Attempt, m.EventType, result.Status, result.Error);
         }

@@ -171,8 +171,8 @@ export class ContactForm {
             <thead><tr><th>Channel</th><th>Address</th><th>Reason</th><th>Scope</th><th>Source</th><th>Added</th><th></th></tr></thead>
             <tbody>
               @for (s of suppressions(); track s.id) {
-                <tr><td><app-channel [value]="s.channel" /></td><td><code>{{ s.address }}</code></td><td>{{ s.reason | human }}@if (s.promotionalOnly) { <span class="tag">promotional only</span> }</td>
-                  <td class="small">{{ s.companyId ? lookups.companyName(s.companyId) : lookups.tenantName(s.tenantId) }}</td><td class="small">{{ s.source ?? '—' }}</td><td class="small nowrap">{{ s.createdAt | dt }}</td>
+                <tr><td><app-channel [value]="s.channel" /></td><td><code>{{ s.address }}</code></td><td>{{ s.reason | human }}@if (s.promotionalOnly) { <span class="tag">promotional only</span> }@if (s.note) { <div class="small muted">{{ s.note }}</div> }</td>
+                  <td class="small">{{ s.companyId ? lookups.companyName(s.companyId) : lookups.tenantName(s.tenantId) }}</td><td class="small">{{ s.source?.startsWith('manual:') ? 'Added by a person' : (s.source ?? '—') }}</td><td class="small nowrap">{{ s.createdAt | dt }}</td>
                   <td>@if (canManage()) { <button mat-icon-button (click)="removeSuppression(s)" aria-label="Remove suppression"><mat-icon>delete</mat-icon></button> }</td></tr>
               } @empty { <tr><td colspan="7" class="muted">No suppressions</td></tr> }
             </tbody>
@@ -185,7 +185,7 @@ export class ContactForm {
               <mat-form-field><mat-label>Channel</mat-label><mat-select [(ngModel)]="sup.channel">@for (ch of channels; track ch) { <mat-option [value]="ch">{{ ch | channel }}</mat-option> }</mat-select></mat-form-field>
               <mat-form-field><mat-label>Address</mat-label><input matInput [(ngModel)]="sup.address"></mat-form-field>
               <mat-form-field><mat-label>Reason</mat-label><mat-select [(ngModel)]="sup.reason">@for (r of reasons; track r) { <mat-option [value]="r">{{ r | human }}</mat-option> }</mat-select></mat-form-field>
-              <mat-form-field><mat-label>Note</mat-label><input matInput [(ngModel)]="sup.note"></mat-form-field>
+              <mat-form-field><mat-label>Note</mat-label><input matInput maxlength="500" [(ngModel)]="sup.note"></mat-form-field>
             </div>
             <button mat-stroked-button (click)="addSuppression()" [disabled]="!sup.tenantId || !sup.address.trim()"><mat-icon>block</mat-icon>Suppress address</button>
           }

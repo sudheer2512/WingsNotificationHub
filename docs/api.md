@@ -70,13 +70,13 @@ Send request fields: `applicationId?` (taken from the token for apps), `companyI
 
 * Events & rules: `POST /events`, `GET /events/{id}`, `/rules` CRUD, `POST /rules/simulate`.
 * Templates: `/templates` (list, `tree`, get, create, `PUT {id}/draft`, `versions/{n}/submit|review|activate`, `retire`,
-  `clone`, `test-send`, `whatsapp-submit`), `/notification-types`.
+  `clone`, `test-send`, `whatsapp-accounts`, `whatsapp-submit`), `/notification-types`.
 * Recipients: `PUT /contacts`, `GET /contacts`, `DELETE /contacts/{id}` (erasure), `/groups`, `/preferences`, `/consents`,
   `/suppressions`, `/devices`, public `GET|POST /u/{token}` (unsubscribe).
 * Providers: `/providers` (types, CRUD with write-only secrets, `test`, `suspend`, `senders`, `sender-guidance`), `/providers/health`, `/routing-rules`.
-* Tenancy/admin: `/tenants`, `/companies`, `/applications` (+`/companies`, `/credentials`), `/credentials/{id}/revoke`, `/users`,
+* Tenancy/admin: `/tenants`, `/companies`, `/applications` (+`/companies`, `/credentials`), `/credentials/{id}/revoke`, `/users` (`POST` only creates and answers 409 for an existing email; `POST /users/{id}/roles` grants; `PUT /users/{id}` renames, sets a password, enables or disables),
   `/quotas`, `/cost-rates`, `/billing-rates`, `/credits`, `/suspend/{tenant|company|application|campaign}/{id}`, `/approvals`, `/audit`.
-* Campaigns & schedules: `/campaigns` (+`import`, `test-send`, `submit`, `approve`, `pause`, `resume`, `cancel`, `recipients`), `/schedules`, `/holiday-calendars`.
+* Campaigns & schedules: `/campaigns` (+`GET {id}` for the editable fields, `import`, `test-send`, `submit`, `approve`, `pause`, `resume`, `cancel`, `recipients`), `/schedules` (+`PUT {id}`), `/holiday-calendars` (+`PUT|DELETE {id}`).
 * Communications: `/conversations` (+`/{id}`, `read`, `reply`), `/attachments`, `/webhooks` (+`attempts`, `test`, `enable`),
   `/inapp/tokens`, `/inapp/messages` (+`/{id}/read|unread|archive|dismiss|action`, `read-all`), `/inapp/branding`, `/push/events`.
 * Reporting: `/dashboard`, `/reports`, `/reports/{code}?format=csv|xlsx`, `/usage?groupBy=…`, `/monitoring`.

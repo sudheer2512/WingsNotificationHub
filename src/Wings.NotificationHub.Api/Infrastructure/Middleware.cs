@@ -65,6 +65,7 @@ public sealed class ErrorHandlingMiddleware(RequestDelegate next, ILogger<ErrorH
         try { await next(ctx); }
         catch (HubException ex) { await WriteAsync(ctx, ex.Status, ex.Code, ex.Message, ex.Errors); }
         catch (AccessDeniedException ex) { await WriteAsync(ctx, 403, "forbidden", ex.Message, null); }
+        catch (Core.Templates.TemplateSyntaxException ex) { await WriteAsync(ctx, 422, "template_syntax", ex.Message, null); }
         catch (DbUpdateConcurrencyException) { await WriteAsync(ctx, 409, "concurrency_conflict", "The resource was modified by someone else. Reload and try again.", null); }
         catch (BadHttpRequestException ex) { await WriteAsync(ctx, 400, "bad_request", ex.Message, null); }
         catch (JsonException ex) { await WriteAsync(ctx, 400, "invalid_json", "The request body is not valid JSON: " + ex.Message, null); }

@@ -105,7 +105,7 @@ import { UI, humanize } from './shared/ui';
     .section { padding: 12px 16px 4px; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--chrome-muted); opacity: .8; }
     .foot { padding: 8px 16px 12px; flex: none; } .foot a { color: var(--chrome-muted); }
     .content { background: var(--canvas); display: flex; flex-direction: column; }
-    .bar { position: sticky; top: 0; z-index: 5; background: var(--surface); border-bottom: 1px solid var(--border); height: 52px; gap: 2px; font-size: 13px; padding: 0 8px; }
+    .bar { flex: none; position: sticky; top: 0; z-index: 5; background: var(--surface); border-bottom: 1px solid var(--border); height: 52px; gap: 2px; font-size: 13px; padding: 0 8px; }
     .live { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 12px; margin-right: 4px; }
     .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--off); } .dot.on { background: var(--good); }
     .menu-head { padding: 8px 16px; max-width: 360px; }

@@ -92,13 +92,15 @@ public static class NotificationEndpoints
         g.MapGet("/{id:guid}/history", async (Guid id, HttpContext ctx, NotificationHubDbContext db) =>
         {
             var (req, deliveries) = await LoadAsync(ctx, db, id);
+            var caller = await ctx.CallerAsync();
             var ids = deliveries.Select(d => d.Id).ToList();
             var attempts = await db.DeliveryAttempts.AsNoTracking().Where(a => ids.Contains(a.DeliveryId)).OrderBy(a => a.StartedAt).ToListAsync(ctx.RequestAborted);
             var providers = await ProviderNamesAsync(db, deliveries.Select(d => d.ProviderAccountId).Concat(attempts.Select(a => a.ProviderAccountId)));
             var events = await db.DeliveryEvents.AsNoTracking().Where(e => e.DeliveryId != null && ids.Contains(e.DeliveryId.Value)).OrderBy(e => e.RecordedAt).ToListAsync(ctx.RequestAborted);
             return Results.Ok(new DeliveryTimelineDto
             {
-                NotificationId = req.Id, Deliveries = deliveries.Select(d => Mapper.Delivery(d, providers)).ToList(),
+                NotificationId = req.Id,
+                Deliveries = deliveries.Select(d => Mapper.Delivery(d, providers, unmasked: caller.Can(Permission.ViewMessageContent, d.TenantId, d.CompanyId, d.ApplicationId))).ToList(),
                 Attempts = attempts.Select(a => Mapper.Attempt(a, providers)).ToList(), Events = events.Select(Mapper.Event).ToList(),
             });
         }).WithSummary("Immutable delivery timeline: attempts and events");

@@ -224,12 +224,15 @@ public sealed class TemplateService(NotificationHubDbContext db, AuditService au
             foreach (var v in version.Variables.Where(v => v.SampleValue is not null)) vars.TryAdd(v.Name, v.SampleValue);
         vars.TryAdd("CompanyName", "Sample Company");
         var rendered = ChannelRenderer.Render(version, channel, vars);
-        var referenced = TemplateEngine.ExtractVariables(version.Subject).Concat(TemplateEngine.ExtractVariables(version.Body)).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        // A syntax error is already in rendered.Errors; only a template that parses can say which variables it uses.
+        List<string>? referenced = TemplateEngine.Validate(version.Subject) is null && TemplateEngine.Validate(version.Body) is null
+            ? TemplateEngine.ExtractVariables(version.Subject).Concat(TemplateEngine.ExtractVariables(version.Body)).Distinct(StringComparer.OrdinalIgnoreCase).ToList()
+            : null;
         return new TemplatePreviewResponse
         {
             Subject = rendered.Content.Subject ?? rendered.Content.Title, Body = rendered.Content.Body, TextBody = rendered.Content.TextBody,
             MissingVariables = rendered.Missing, Errors = rendered.Errors,
-            UnknownVariables = (req.Variables?.Keys ?? Enumerable.Empty<string>()).Where(k => !referenced.Contains(k, StringComparer.OrdinalIgnoreCase)).ToList(),
+            UnknownVariables = referenced is null ? [] : (req.Variables?.Keys ?? Enumerable.Empty<string>()).Where(k => !referenced.Contains(k, StringComparer.OrdinalIgnoreCase)).ToList(),
             Sms = channel == Channel.Sms ? SmsSegmenter.Analyze(rendered.Content.Body) : null,
         };
     }

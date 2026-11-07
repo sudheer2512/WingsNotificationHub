@@ -682,6 +682,7 @@ CREATE TABLE [Suppressions] (
     [Reason] int NOT NULL,
     [PromotionalOnly] bit NOT NULL,
     [Source] nvarchar(400) NULL,
+    [Note] nvarchar(500) NULL,
     [CreatedAt] datetime2 NOT NULL,
     [ExpiresAt] datetime2 NULL,
     CONSTRAINT [PK_Suppressions] PRIMARY KEY ([Id])

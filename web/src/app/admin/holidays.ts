@@ -1,6 +1,7 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
+import { MatDialog } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
@@ -11,6 +12,7 @@ import { AuthService } from '../core/auth.service';
 import { LookupsService } from '../core/lookups.service';
 import { HolidayCalendar } from '../core/models';
 import { UI } from '../shared/ui';
+import { confirmDialog } from '../shared/widgets';
 
 /** Parses "2026-11-08 Diwali" lines into holiday dates; returns the bad lines too. Exported for tests. */
 export function parseHolidayLines(text: string): { dates: { date: string; name: string }[]; errors: string[] } {
@@ -35,7 +37,11 @@ export function parseHolidayLines(text: string): { dates: { date: string; name: 
       <div class="grid-2">
         @for (c of calendars(); track c.id) {
           <section class="panel">
-            <div class="panel-head"><h2>{{ c.name }}</h2><span class="tag">{{ c.country ?? '—' }}</span><span class="spacer"></span><span class="small muted">{{ c.tenantId ? lookups.tenantName(c.tenantId) : 'Platform-wide' }}</span></div>
+            <div class="panel-head"><h2>{{ c.name }}</h2><span class="tag">{{ c.country ?? '—' }}</span><span class="spacer"></span><span class="small muted">{{ c.tenantId ? lookups.tenantName(c.tenantId) : 'Platform-wide' }}</span>
+              @if (canChange(c)) {
+                <button mat-icon-button (click)="edit(c)" [attr.aria-label]="'Edit ' + c.name"><mat-icon>edit</mat-icon></button>
+                <button mat-icon-button (click)="remove(c)" [attr.aria-label]="'Delete ' + c.name"><mat-icon>delete</mat-icon></button>
+              }</div>
             <div class="table-wrap" style="max-height:300px"><table class="data">
               <thead><tr><th>Date</th><th>Holiday</th></tr></thead>
               <tbody>@for (d of c.dates; track d.date) { <tr><td class="nowrap">{{ fmt(d.date) }}</td><td>{{ d.name }}</td></tr> } @empty { <tr><td colspan="2" class="muted">No dates</td></tr> }</tbody>
@@ -45,16 +51,19 @@ export function parseHolidayLines(text: string): { dates: { date: string; name: 
       </div>
       @if (auth.can('ManageTenancy')) {
         <section class="panel" style="margin-top:12px">
-          <h2>New calendar</h2>
+          <h2>{{ editing() ? 'Edit ' + editing()!.name : 'New calendar' }}</h2>
           <div class="form-grid">
             <mat-form-field><mat-label>Name</mat-label><input matInput [(ngModel)]="m.name" placeholder="India 2027"></mat-form-field>
             <mat-form-field><mat-label>Country</mat-label><input matInput [(ngModel)]="m.country" placeholder="IN"></mat-form-field>
-            <mat-form-field><mat-label>Tenant</mat-label><mat-select [(ngModel)]="m.tenantId">@if (auth.isPlatformAdmin()) { <mat-option value="">Platform-wide</mat-option> }
+            <mat-form-field><mat-label>Tenant</mat-label><mat-select [(ngModel)]="m.tenantId" [disabled]="!!editing()">@if (auth.isPlatformAdmin()) { <mat-option value="">Platform-wide</mat-option> }
               @for (t of lookups.tenants(); track t.id) { <mat-option [value]="t.id">{{ t.name }}</mat-option> }</mat-select></mat-form-field>
             <mat-form-field class="span-2"><mat-label>Dates (one per line: yyyy-mm-dd Name)</mat-label><textarea matInput rows="6" class="code" [(ngModel)]="m.dates" placeholder="2027-01-26 Republic Day"></textarea></mat-form-field>
           </div>
           @if (bad().length) { <div class="error small">Unrecognised lines: {{ bad().join('; ') }}</div> }
-          <button mat-flat-button (click)="create()" [disabled]="!m.name.trim()"><mat-icon>event_available</mat-icon>Create calendar</button>
+          <div class="row">
+            <button mat-flat-button (click)="save()" [disabled]="!m.name.trim()"><mat-icon>{{ editing() ? 'save' : 'event_available' }}</mat-icon>{{ editing() ? 'Save changes' : 'Create calendar' }}</button>
+            @if (editing()) { <button mat-button (click)="reset()">Cancel</button> }
+          </div>
         </section>
       }
     </div>`,
@@ -62,22 +71,39 @@ export function parseHolidayLines(text: string): { dates: { date: string; name: 
 export class Holidays implements OnInit {
   private api = inject(ApiService);
   private snack = inject(MatSnackBar);
+  private dialog = inject(MatDialog);
   auth = inject(AuthService);
   lookups = inject(LookupsService);
   calendars = signal<HolidayCalendar[]>([]);
+  editing = signal<HolidayCalendar | null>(null);
   error = signal<unknown>(null);
   bad = signal<string[]>([]);
-  m = { name: '', country: 'IN', tenantId: '', dates: '' };
+  m = this.blank();
 
-  ngOnInit() { this.load(); this.m.tenantId = this.auth.isPlatformAdmin() ? '' : this.lookups.tenants()[0]?.id ?? ''; }
+  private blank() { return { name: '', country: 'IN', tenantId: this.auth.isPlatformAdmin() ? '' : this.lookups.tenants()[0]?.id ?? '', dates: '' }; }
+
+  ngOnInit() { this.load(); }
+  reset() { this.editing.set(null); this.bad.set([]); this.m = this.blank(); }
+  canChange(c: HolidayCalendar) { return c.tenantId ? this.auth.can('ManageTenancy') : this.auth.isPlatformAdmin(); }
   load() { this.api.holidayCalendars().subscribe({ next: c => this.calendars.set(c), error: e => this.error.set(e) }); }
   fmt(d: string) { return new Date(d + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' }); }
-  create() {
+  edit(c: HolidayCalendar) {
+    this.editing.set(c); this.bad.set([]);
+    this.m = { name: c.name, country: c.country ?? '', tenantId: c.tenantId ?? '', dates: c.dates.map(d => `${d.date} ${d.name}`).join('\n') };
+  }
+  save() {
     const { dates, errors } = parseHolidayLines(this.m.dates);
     this.bad.set(errors);
     if (errors.length) return;
-    this.api.createHolidayCalendar({ tenantId: this.m.tenantId || null, name: this.m.name.trim(), country: this.m.country || null, dates }).subscribe({
-      next: () => { this.snack.open('Calendar created', 'OK', { duration: 2500 }); this.m = { ...this.m, name: '', dates: '' }; this.load(); }, error: e => this.error.set(e),
+    const current = this.editing();
+    const body = { tenantId: this.m.tenantId || null, name: this.m.name.trim(), country: this.m.country || null, dates };
+    (current ? this.api.updateHolidayCalendar(current.id, body) : this.api.createHolidayCalendar(body)).subscribe({
+      next: () => { this.snack.open(current ? 'Calendar saved' : 'Calendar created', 'OK', { duration: 2500 }); this.reset(); this.load(); }, error: e => this.error.set(e),
+    });
+  }
+  remove(c: HolidayCalendar) {
+    confirmDialog(this.dialog, { title: 'Delete calendar', message: `Delete "${c.name}"? A calendar that a schedule uses cannot be deleted.`, confirmText: 'Delete', danger: true }).subscribe(ok => {
+      if (ok) this.api.deleteHolidayCalendar(c.id).subscribe({ next: () => { if (this.editing()?.id === c.id) this.reset(); this.load(); }, error: e => this.error.set(e) });
     });
   }
 }

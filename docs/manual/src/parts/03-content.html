@@ -67,7 +67,7 @@
 </ul>
 
 <h3 id="sec-t-test" data-ix="Test send">Sending a test</h3>
-<div class="who"><b>Who can do this:</b> anyone who can edit templates. Delivering a real test of an active version also needs the right to send, which platform, tenant, company and application administrators have. A template designer gets <code>You do not have access to this resource.</code></div>
+<div class="who"><b>Who can do this:</b> anyone who can edit templates, including template designers.</div>
 <ol class="steps">
   <li>Select <b>More actions</b> (⋮), then <b>Test send</b>.</li>
   <li>Choose the <b>Company</b>, <b>Application</b> and <b>Version</b>.</li>
@@ -148,7 +148,7 @@
   <li>Select <b>More actions</b> (⋮), then <b>Submit to WhatsApp</b>. Choose the <b>WhatsApp provider account</b> and <b>Version</b>, then <b>Submit</b>. The result appears on the <b>Versions</b> tab as <b>WA:</b> and the status.</li>
 </ol>
 <fig src="template-whatsapp.jpg" cap="A WhatsApp template with header, footer and a quick-reply button."/>
-<aside class="note"><p><b>Submit to WhatsApp</b> needs a role that can see providers. For a template designer the provider list is empty, so ask an administrator to submit it. A Mock provider answers <code>The provider account does not support template submission.</code></p></aside>
+<aside class="note"><p>If no WhatsApp account is listed, ask an administrator to add one under <b>Providers</b>. A Mock provider answers <code>The provider account does not support template submission.</code></p></aside>
 
 <h2 id="ch-rules" data-ix="Rule designer|Rules|Business events|Conditions">Rule designer</h2>
 <p class="lead">Rules let your applications report what happened, such as “payment overdue”, and leave the hub to decide who hears about it and how. Each rule reads: when this event happens, and these conditions are true, tell these recipients on these channels.</p>
@@ -237,7 +237,6 @@
   <li>Select <b>Save draft</b>.</li>
 </ol>
 <fig src="campaign-new-dialog.jpg" w="78" cap="The New campaign dialog, with a segment that selects customers."/>
-<aside class="warn"><p>Reopening a draft with <b>Edit</b> does not show its <b>Template variables</b>, <b>Recipient groups</b>, <b>Segment</b> or <b>Notification type</b>, and saving clears them. If you edit a draft, enter them again before you select <b>Save draft</b>. Recipients you imported are not affected.</p></aside>
 
 <h3 id="sec-c-import" data-ix="Import recipients|CSV import">Importing recipients</h3>
 <ol class="steps">
@@ -253,7 +252,7 @@ bharat@example.com,+919800000102,Bharat Shah,C-2002,Bharat Shah</code></pre>
 <aside class="note"><p>Each row needs an <code>email</code>, <code>mobile</code> or <code>externalId</code>. A row with only an <code>externalId</code> is accepted, and is <st>Skipped</st> when the campaign runs if it has no usable address. Row numbers count the heading as row 1. A second import adds to the list; repeats in the same file are rejected as <code>duplicate recipient</code>.</p></aside>
 
 <h3 id="sec-c-test">Testing a campaign</h3>
-<p>Administrators can select <b>Test send</b> on a draft and enter one <b>Recipient email or mobile (E.164)</b>. The result appears on the campaign as <code>Test accepted as …</code>. A campaign manager gets <code>You do not have access to this resource.</code>, so ask an administrator to send the test.</p>
+<p>Select <b>Test send</b> on a draft and enter one <b>Recipient email or mobile (E.164)</b>. The result appears on the campaign as <code>Test accepted as …</code>.</p>
 <p>The test uses the campaign's <b>Template variables</b> and has no import columns to draw on. If the template needs a value such as <code>CustomerName</code>, add it there, or the test fails with <code>The notification could not be rendered.</code> Consent rules apply to tests too: a promotional test to an address with no marketing consent is accepted but shows <st>Suppressed</st>.</p>
 
 <h3 id="sec-c-submit" data-ix="Submit campaign|Approve campaign">Submitting and approving</h3>
@@ -274,7 +273,7 @@ bharat@example.com,+919800000102,Bharat Shah,C-2002,Bharat Shah</code></pre>
 <tr><td><b>Emergency hold</b>, <b>Lift hold</b></td><td>Holds pending messages, not lost, and needs a <b>Reason</b>. The campaign shows <st>Suspended</st> beside its status.</td></tr>
 <tr><td><b>Cancel</b></td><td>Pending deliveries are cancelled. This cannot be undone.</td></tr>
 </tbody></table></div>
-<aside class="note"><p>A small campaign can finish in seconds, before you can pause it. Set a low throttle if you want time to watch one. If a campaign finishes while on hold, it keeps showing <st>Suspended</st>, because <b>Lift hold</b> is not offered on a completed campaign. This has no effect on anything.</p></aside>
+<aside class="note"><p>A small campaign can finish in seconds, before you can pause it. Set a low throttle if you want time to watch one. If a campaign finishes while on hold, it keeps showing <st>Suspended</st> until you select <b>Lift hold</b>, because some of its messages may still be held. Cancelling a campaign clears its hold.</p></aside>
 
 <h2 id="ch-recipients" data-ix="Recipients|Contacts">Recipients</h2>
 <p class="lead">This screen holds who you can reach and what they agreed to: contacts, preferences, consent, suppressions and groups.</p>
@@ -347,7 +346,7 @@ bharat@example.com,+919800000102,Bharat Shah,C-2002,Bharat Shah</code></pre>
   <li>Choose the <b>Channel</b>, enter the <b>Address</b>, choose the <b>Reason</b>, and add a <b>Note</b>.</li>
   <li>Select <b>Suppress address</b>.</li>
 </ol>
-<aside class="note"><p>Only <b>Unsubscribe</b> and <b>Opt out</b> stay limited to the company you chose. <b>Manual</b>, <b>Hard bounce</b>, <b>Complaint</b> and <b>Invalid address</b> always apply to the whole tenant, even if you pick a company, and the <b>Scope</b> column shows the tenant.</p></aside>
+<aside class="note"><p>The suppression applies to the company you chose, or to the whole tenant if you chose <b>Whole tenant</b>. The <b>Scope</b> column shows which, and your <b>Note</b> appears under the <b>Reason</b>. Suppressions the hub adds itself after a bounce or complaint always apply to the whole tenant.</p></aside>
 <h4 id="task-supp-remove">To remove a suppression</h4>
 <ol class="steps">
   <li>Find it with <b>Channel</b> and <b>Address contains</b> (press Enter).</li>
@@ -390,6 +389,12 @@ bharat@example.com,+919800000102,Bharat Shah,C-2002,Bharat Shah</code></pre>
 </tbody></table></div>
 <h3 id="sec-s-manage">Managing schedules</h3>
 <p>The table shows the pattern, time zone, next and last run, and the number of runs. Use <b>Enabled</b> to pause and restart a schedule. The braces icon (<b>View request</b>) shows what will be sent. The delete icon removes it, and future runs are cancelled.</p>
+<h4 id="task-s-edit">To change a schedule</h4>
+<ol class="steps">
+  <li>Select the edit icon on its row. The form below fills in, under the heading <b>Edit</b> and the schedule's name.</li>
+  <li>Make your changes. The <b>Company</b> and <b>Application</b> cannot change: to move a schedule, delete it and create it again.</li>
+  <li>Select <b>Save changes</b>. The hub checks it again with a dry run and shows the next run. Select <b>Cancel</b> to leave it as it was.</li>
+</ol>
 
 <h3 id="sec-holidays" data-ix="New calendar">Creating a holiday calendar</h3>
 <ol class="steps">
@@ -398,6 +403,11 @@ bharat@example.com,+919800000102,Bharat Shah,C-2002,Bharat Shah</code></pre>
   <li>Enter <b>Dates (one per line: yyyy-mm-dd Name)</b>, such as <code>2027-01-26 Republic Day</code>.</li>
   <li>Select <b>Create calendar</b>.</li>
 </ol>
-<p>Lines the hub cannot read are listed as <code>Unrecognised lines: …</code>, and the calendar is not created. The console has no button to change or delete a calendar, or to edit a schedule, so check the dates first. To correct one, create a new calendar, delete the schedule and create it again.</p>
-<fig src="holidays.jpg" w="74" cap="A holiday calendar."/>
+<p>Lines the hub cannot read are listed as <code>Unrecognised lines: …</code>, and the calendar is not saved.</p>
+<fig src="holidays.jpg" w="74" cap="Holiday calendars, each with edit and delete icons."/>
+<h3 id="sec-holidays-manage" data-ix="Edit calendar|Delete calendar">Changing or deleting a calendar</h3>
+<ol class="steps">
+  <li>To change one, select its edit icon, change the <b>Name</b>, <b>Country</b> or <b>Dates (one per line: yyyy-mm-dd Name)</b>, then select <b>Save changes</b>. Schedules that use the calendar are rescheduled straight away, so a run on a new holiday moves.</li>
+  <li>To delete one, select its delete icon and confirm with <b>Delete</b>. A calendar that a schedule uses cannot be deleted: choose another calendar for that schedule first.</li>
+</ol>
 </section>
